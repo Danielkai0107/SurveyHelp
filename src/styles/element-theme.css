@@ -1,0 +1,25 @@
+/* Element UI 主題色覆蓋 */
+:root {
+  /* Element UI 主色系 */
+  --el-color-primary: #1A81FF;
+  --el-color-primary-light-1: #3D93FF;
+  --el-color-primary-light-2: #5FA5FF;
+  --el-color-primary-light-3: #80B7FF;
+  --el-color-primary-light-4: #A2C9FF;
+  --el-color-primary-light-5: #C4DBFF;
+  --el-color-primary-light-6: #E6F3FF;
+  --el-color-primary-light-7: #F0F8FF;
+  --el-color-primary-light-8: #F7FCFF;
+  --el-color-primary-light-9: #FBFEFF;
+  --el-color-primary-dark-1: #0066E6;
+  --el-color-primary-dark-2: #0052CC;
+}
+
+/* Progress 組件樣式覆蓋 */
+.el-progress-bar__outer {
+  background-color: #f3f4f6;
+}
+
+.el-progress-bar__inner {
+  background-color: var(--el-color-primary);
+}

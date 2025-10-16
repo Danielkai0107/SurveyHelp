@@ -1,5 +1,6 @@
 <template>
-  <div class="card text-center p-8">
+  <AuthGuard>
+    <div class="card text-center p-8">
     <div class="mb-6">
       <div style="font-size:48px; margin-bottom:16px">🚀</div>
       <h2 class="mb-3">準備開始填答</h2>
@@ -13,12 +14,12 @@
     </div>
     
     <div class="flex gap-3 justify-center">
-      <a class="btn" :href="ext" target="_blank" rel="noopener">
+      <BaseButton variant="primary" size="default" @click="window.open(ext, '_blank', 'noopener')">
         ⚡ 立即前往
-      </a>
-      <router-link class="btn-ghost" :to="`/s/${$route.params.id}`">
+      </BaseButton>
+      <BaseButton variant="secondary" size="default" :to="`/s/${$route.params.id}`">
         ← 取消返回
-      </router-link>
+      </BaseButton>
     </div>
     
     <div class="mt-6 p-4 rounded-lg" style="background:var(--hover)">
@@ -26,10 +27,12 @@
         💡 提醒：完成問卷後，請點擊問卷最後的「返回驗證」連結來獲得積分獎勵
       </p>
     </div>
-  </div>
+    </div>
+  </AuthGuard>
 </template>
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
+import AuthGuard from '../components/AuthGuard.vue'
 const sec = ref(3)
 const ext = 'https://example.org'
 let timer

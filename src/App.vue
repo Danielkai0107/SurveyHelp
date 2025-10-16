@@ -4,9 +4,13 @@
     <header class="top-bar">
       <div class="top-bar-left">
         <button class="sidebar-toggle-btn" @click="toggleSidebar">
-          <span class="toggle-icon" :class="{ 'rotated': sidebarCollapsed && !isMobile }">
-            {{ sidebarCollapsed && !isMobile ? '→' : '☰' }}
-          </span>
+        <span class="toggle-icon" :class="{ 
+          'rotated': sidebarCollapsed && !isMobile,
+          'hamburger': sidebarCollapsed && !isMobile,
+          'arrow': !sidebarCollapsed || isMobile
+        }">
+          {{ sidebarCollapsed && !isMobile ? '☰' : '←' }}
+        </span>
         </button>
         <router-link class="logo" to="/">
           <span class="logo-text">SurveyHelp</span>
@@ -14,7 +18,15 @@
       </div>
       
       <div class="top-bar-right">
-        <router-link to="/auth" class="auth-btn">
+        <div v-if="isLoading" class="auth-loading">載入中...</div>
+        <div v-else-if="user" class="user-menu">
+          <div class="user-info">
+            <img v-if="user.photoURL" :src="user.photoURL" :alt="user.displayName" class="user-avatar">
+            <span class="user-name">{{ user.displayName || user.email }}</span>
+          </div>
+          <button @click="handleLogout" class="logout-btn">登出</button>
+        </div>
+        <router-link v-else to="/auth" class="auth-btn">
           <span class="auth-text">登入</span>
         </router-link>
       </div>
@@ -25,14 +37,29 @@
       'sidebar-open': sidebarOpen, 
       'sidebar-collapsed': sidebarCollapsed && !isMobile 
     }">
+      <!-- 手機版側邊欄頂部 logo -->
+      <div v-if="isMobile" class="sidebar-header">
+        <div class="sidebar-logo">
+          <span class="logo-text">SurveyHelp</span>
+        </div>
+        <button @click="closeSidebar" class="sidebar-close-btn">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      
       <nav class="sidebar-nav">
         <div class="nav-section">
           <router-link to="/" class="nav-item" @click="handleNavClick">
+            <span class="material-symbols-rounded nav-icon">explore</span>
             <span class="nav-text">探索問卷</span>
             <span class="nav-arrow">›</span>
           </router-link>
           <router-link to="/publish" class="nav-item" @click="handleNavClick">
-            <span class="nav-text">發布問卷</span>
+            <span class="material-symbols-rounded nav-icon">hand_gesture</span>
+            <span class="nav-text">發起互填</span>
             <span class="nav-arrow">›</span>
           </router-link>
         </div>
@@ -40,10 +67,12 @@
         <div class="nav-section">
           <div class="nav-section-title">我的</div>
           <router-link to="/me/answers" class="nav-item" @click="handleNavClick">
+            <span class="material-symbols-rounded nav-icon">assignment</span>
             <span class="nav-text">我的填答</span>
             <span class="nav-arrow">›</span>
           </router-link>
           <router-link to="/me/surveys" class="nav-item" @click="handleNavClick">
+            <span class="material-symbols-rounded nav-icon">poll</span>
             <span class="nav-text">我發布的</span>
             <span class="nav-arrow">›</span>
           </router-link>
@@ -68,10 +97,24 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useAuth } from './composables/useAuth.js'
 
 const sidebarOpen = ref(false)
 const sidebarCollapsed = ref(false)
 const windowWidth = ref(window.innerWidth)
+
+// 認證狀態
+const { user, isLoading, logout, initAuth } = useAuth()
+
+// 處理登出
+const handleLogout = async () => {
+  try {
+    await logout()
+    console.log('登出成功')
+  } catch (error) {
+    console.error('登出失敗:', error)
+  }
+}
 
 // 檢測是否為手機版
 const isMobile = computed(() => windowWidth.value <= 768)
@@ -112,6 +155,7 @@ const handleNavClick = () => {
 
 onMounted(() => {
   window.addEventListener('resize', handleResize)
+  initAuth() // 初始化認證狀態
 })
 
 onUnmounted(() => {
@@ -124,7 +168,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: #fafafa;
+  background: #ffffff;
 }
 
 /* 頂部欄 */
@@ -136,7 +180,6 @@ onUnmounted(() => {
   height: 64px;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -169,14 +212,25 @@ onUnmounted(() => {
 }
 
 .sidebar-toggle-btn:hover {
-  background: var(--hover);
+  background: #f5f5f5;
 }
 
 .toggle-icon {
   font-size: 18px;
   color: var(--text);
   transition: all 0.3s ease;
-  display: inline-block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.toggle-icon.hamburger {
+  margin-top: 3px;
+}
+
+.toggle-icon.arrow {
+  margin-top: 0px;
 }
 
 .toggle-icon.rotated {
@@ -209,23 +263,78 @@ onUnmounted(() => {
   border-radius: 12px;
 }
 
+.auth-loading {
+  font-size: 14px;
+  color: var(--muted);
+  padding: 8px 16px;
+}
+
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+}
+
+.user-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 20px;
+  background-color: #f5f5f5;
+  color: #000000;
+  border: none;
+  border-radius: 40px;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logout-btn:hover {
+  background: #e1e1e1;
+}
+
 .auth-btn {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 16px;
-  background: var(--text);
-  color: white;
-  border-radius: 12px;
+  height: 40px;
+  padding: 0 20px;
+  background-color: #f5f5f5;
+  color: #000000;
+  border-radius: 40px;
   font-weight: 500;
   font-size: 14px;
   transition: all 0.2s;
+  text-decoration: none;
 }
 
 .auth-btn:hover {
-  background: #000;
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-lg);
+  background: #e1e1e1;
 }
 
 .auth-icon {
@@ -233,6 +342,7 @@ onUnmounted(() => {
 }
 
 .auth-text {
+  font-size: 14px;
   font-weight: 500;
 }
 
@@ -240,7 +350,6 @@ onUnmounted(() => {
 .sidebar {
   width: 200px;
   background: white;
-  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   position: fixed;
@@ -285,17 +394,24 @@ onUnmounted(() => {
 .nav-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 12px;
   padding: 12px 20px;
   color: var(--text);
   font-weight: 500;
   font-size: 14px;
   transition: all 0.2s;
-  border-radius: 0;
+  border-radius: 12px;
   position: relative;
   text-decoration: none;
-  border-radius: 12px;
   margin-bottom: 4px;
+  text-wrap: nowrap;
+}
+
+.nav-icon {
+  font-size: 20px;
+  color: var(--muted);
+  transition: all 0.2s ease;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
 }
 
 .nav-item:hover {
@@ -303,20 +419,19 @@ onUnmounted(() => {
   color: var(--text);
 }
 
+.nav-item:hover .nav-icon {
+  color: var(--text);
+}
+
 .nav-item.router-link-active {
-  background: var(--hover);
+  background: #f5f5f5;
   color: var(--text);
   font-weight: 600;
 }
 
-.nav-item.router-link-active::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: var(--text);
+.nav-item.router-link-active .nav-icon {
+  color: var(--text);
+  font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 20;
 }
 
 .nav-text {
@@ -327,8 +442,8 @@ onUnmounted(() => {
 .nav-arrow {
   font-size: 16px;
   color: var(--muted);
-  transition: all 0.2s;
   opacity: 0;
+  transition: all 0.2s ease;
 }
 
 .nav-item:hover .nav-arrow {
@@ -408,6 +523,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 12px;
 }
 
 .footer a {
@@ -488,17 +604,65 @@ onUnmounted(() => {
   }
 }
 
-/* 側邊欄遮罩 */
+/* 手機版側邊欄 */
 @media (max-width: 768px) {
+  .sidebar {
+    width: 100vw; /* 填滿整個螢幕寬度 */
+    left: -100vw; /* 預設隱藏在左側 */
+  }
+  
+  .sidebar.sidebar-open {
+    left: 0; /* 顯示時填滿螢幕 */
+  }
+  
   .sidebar.sidebar-open::after {
-    content: '';
-    position: fixed;
+    display: none; /* 移除遮罩，因為已經填滿螢幕 */
+  }
+  
+  /* 側邊欄頂部 */
+  .sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    background: white;
+    position: absolute;
     top: 0;
-    left: 280px;
+    left: 0;
     right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: -1;
+    height: 64px;
+    z-index: 10;
+  }
+  
+  .sidebar-logo .logo-text {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  
+  .sidebar-close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: white;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .sidebar-close-btn:hover {
+    border-color: var(--text);
+    background: var(--hover);
+  }
+  
+  /* 側邊欄內容區域 */
+  .sidebar-nav {
+    padding: 80px 24px 24px; /* 上方留空給 header */
   }
 }
 </style>

@@ -1,5 +1,6 @@
 <template>
-  <div class="grid" style="gap:12px">
+  <AuthGuard>
+    <div class="grid" style="gap:12px">
     <div class="card" style="display:flex; gap:8px">
       <button :class="tab==='doing'?'btn':'btn-ghost'" @click="tab='doing'">進行中</button>
       <button :class="tab==='done'?'btn':'btn-ghost'" @click="tab='done'">已完成</button>
@@ -13,16 +14,19 @@
             <span class="status" :class="badge(item.status)">{{ item.statusText }}</span>
           </div>
           <p style="color:var(--muted); margin:6px 0 12px">{{ item.time }}</p>
-          <router-link class="btn" :to="`/s/${item.sid}`">查看詳情</router-link>
+          <BaseButton variant="primary" size="default" :to="`/s/${item.sid}`">查看詳情</BaseButton>
         </div>
       </div>
     </template>
     <EmptyState v-else title="暫無資料" subtitle="去探索頁看看吧" ctaText="探索問卷" to="/" />
-  </div>
+    </div>
+  </AuthGuard>
 </template>
 <script setup>
 import { ref, computed } from 'vue'
 import EmptyState from '../components/EmptyState.vue'
+import BaseButton from '../components/BaseButton.vue'
+import AuthGuard from '../components/AuthGuard.vue'
 const tab = ref('doing')
 const data = ref({
   doing:[

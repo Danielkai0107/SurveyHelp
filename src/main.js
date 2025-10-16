@@ -1,7 +1,24 @@
 import { createApp } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
+import ElementPlus from 'element-plus'
+import 'element-plus/dist/index.css'
 import App from './App.vue'
 import './styles/base.css'
+import './styles/element-theme.css'
+
+// Initialize Firebase
+import './firebase.js'
+import { initFirestoreOptions } from './utils/initFirestore.js'
+
+// 開發模式下導入測試資料腳本
+if (import.meta.env.DEV) {
+  import('./utils/addTestData.js')
+}
+
+// Element UI 主題色配置
+const elementPlusOptions = {
+  // 可以在這裡設置全局配置
+}
 
 // Pages
 import Explore from './pages/Explore.vue'
@@ -34,4 +51,19 @@ const router = createRouter({
   scrollBehavior() { return { top: 0 } }
 })
 
-createApp(App).use(router).mount('#app')
+// 初始化應用
+async function initApp() {
+  try {
+    // 初始化 Firestore 選項資料
+    await initFirestoreOptions()
+    
+    // 掛載應用
+    createApp(App).use(ElementPlus).use(router).mount('#app')
+  } catch (error) {
+    console.error('應用初始化失敗:', error)
+    // 即使初始化失敗也要掛載應用
+    createApp(App).use(ElementPlus).use(router).mount('#app')
+  }
+}
+
+initApp()

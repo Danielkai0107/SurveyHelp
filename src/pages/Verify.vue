@@ -20,12 +20,12 @@
         </div>
         
         <div class="flex gap-3 justify-center">
-          <router-link class="btn" to="/">
+          <BaseButton variant="primary" size="default" to="/">
             🏠 回到首頁
-          </router-link>
-          <router-link class="btn-ghost" to="/me/answers">
+          </BaseButton>
+          <BaseButton variant="secondary" size="default" to="/me/answers">
             📋 查看我的填答
-          </router-link>
+          </BaseButton>
         </div>
       </template>
       
@@ -40,12 +40,12 @@
         </div>
         
         <div class="flex gap-3 justify-center">
-          <router-link class="btn" :to="detailLink">
+          <BaseButton variant="primary" size="default" :to="detailLink">
             🔄 重新嘗試
-          </router-link>
-          <router-link class="btn-ghost" to="/">
+          </BaseButton>
+          <BaseButton variant="secondary" size="default" to="/">
             🏠 回到首頁
-          </router-link>
+          </BaseButton>
         </div>
       </template>
     </div>
@@ -54,6 +54,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
+import BaseButton from '../components/BaseButton.vue'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 const route = useRoute()
 const loading = ref(true); const ok = ref(false); const reason = ref('找不到待驗證紀錄')

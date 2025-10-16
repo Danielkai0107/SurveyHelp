@@ -1,33 +1,39 @@
 <template>
   <div :class="['survey-item', viewMode]" @click="goToDetail">
     <div class="survey-meta">
-      <span class="survey-category">{{ survey.field }}</span>
-      <span class="survey-date">{{ survey.date }}</span>
+      <span class="survey-category">{{ displayField }}</span>
+      <span class="survey-date">{{ formattedDate }}</span>
     </div>
-    <h2 class="survey-title">{{ survey.title }}</h2>
-    <p class="survey-org">{{ survey.org }}</p>
+    <!-- 標題和標籤區 -->
+    <div class="title-tags-row">
+      <h2 class="survey-title">{{ survey.title }}</h2>
+      <!-- 標籤區 -->
+      <div class="survey-tags" v-if="displayTags.length > 0">
+        <span v-for="tag in displayTags" :key="tag" class="tag">{{ tag }}</span>
+        <span v-if="remainingTagsCount > 0" class="tag tag-more">+{{ remainingTagsCount }}</span>
+      </div>
+    </div>
+    <p class="survey-org">{{ displayOrganization }}</p>
     <p class="survey-description">{{ survey.description }}</p>
     
-    <!-- 標籤區 -->
-    <div class="survey-tags" v-if="survey.tags && survey.tags.length > 0">
-      <span v-for="tag in displayTags" :key="tag" class="tag">{{ tag }}</span>
-      <span v-if="remainingTagsCount > 0" class="tag tag-more">+{{ remainingTagsCount }}</span>
-    </div>
-    
     <!-- 進度條區 -->
-    <div class="survey-progress" v-if="survey.filled !== undefined && survey.target">
+    <div class="survey-progress" v-if="survey.filled !== undefined && displayTarget">
       <div class="progress-info">
         <span class="progress-text">填答進度</span>
-        <span class="progress-stats">{{ survey.filled }}/{{ survey.target }}</span>
+        <span class="progress-stats">{{ survey.filled }}/{{ displayTarget }}</span>
       </div>
-      <ProgressBar :value="Math.min(100, Math.round((survey.filled/survey.target)*100))" />
+      <el-progress 
+        :percentage="Math.min(100, Math.round((survey.filled/displayTarget)*100))" 
+        :show-text="false"
+        :stroke-width="6"
+      />
     </div>
   </div>
 </template>
 <script setup>
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import ProgressBar from './ProgressBar.vue'
+import { formatRelativeTime } from '../utils/dateFormatter.js'
 
 const router = useRouter()
 
@@ -38,13 +44,34 @@ const props = defineProps({
 
 // 標籤顯示邏輯：最多顯示3個標籤
 const displayTags = computed(() => {
-  const tags = props.survey.tags || []
+  // 優先使用轉換後的標籤，否則使用原始標籤
+  const tags = props.survey.tagsLabels || props.survey.tags || []
   return tags.slice(0, 3)
 })
 
 const remainingTagsCount = computed(() => {
-  const tags = props.survey.tags || []
+  const tags = props.survey.tagsLabels || props.survey.tags || []
   return Math.max(0, tags.length - 3)
+})
+
+// 格式化日期
+const formattedDate = computed(() => {
+  return formatRelativeTime(props.survey.createdAt || props.survey.date)
+})
+
+// 顯示的領域標籤
+const displayField = computed(() => {
+  return props.survey.fieldLabel || props.survey.field || ''
+})
+
+// 顯示的機構名稱
+const displayOrganization = computed(() => {
+  return props.survey.organization || props.survey.org || ''
+})
+
+// 顯示的目標人數
+const displayTarget = computed(() => {
+  return props.survey.targetCount || props.survey.target || 0
 })
 
 // 點擊處理
@@ -62,11 +89,8 @@ const goToDetail = () => {
   transition: all 0.2s ease;
 }
 
-.survey-item.list:hover {
-  background: var(--hover);
-  margin: 0 -32px;
-  padding: 32px;
-  border-radius: 8px;
+.survey-item.list:hover .title-tags-row .survey-title {
+  transform: scale(1.1);
 }
 
 .survey-item.list:last-child {
@@ -76,17 +100,16 @@ const goToDetail = () => {
 /* 圖卡檢視樣式 */
 .survey-item.grid {
   padding: 24px;
-  border: 1px solid #d1d5db;
-  border-radius: 12px;
+  border-radius: 32px;
   cursor: pointer;
   transition: all 0.2s ease;
   background: white;
+  border: 1px solid transparent;
+
 }
 
 .survey-item.grid:hover {
-  border-color: #9ca3af;
-  box-shadow: var(--shadow);
-  transform: translateY(-2px);
+  border-color: #d1d5db;
 }
 
 .survey-meta {
@@ -107,12 +130,24 @@ const goToDetail = () => {
   color: var(--muted);
 }
 
+/* 標題和標籤行 */
+.title-tags-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 6px;
+}
+
 .survey-title {
   font-size: 20px;
   font-weight: 600;
-  margin: 0 0 6px 0;
+  margin: 0;
   line-height: 1.3;
   color: var(--text);
+  transition: transform 0.2s ease;
+  flex: 1;
+  transform-origin: left center;
 }
 
 .survey-org {
@@ -127,13 +162,16 @@ const goToDetail = () => {
   line-height: 1.5;
   color: var(--muted);
   margin: 0 0 12px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .survey-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 16px;
+  flex-shrink: 0;
 }
 
 .tag {
@@ -171,5 +209,18 @@ const goToDetail = () => {
 .progress-stats {
   font-size: 12px;
   color: var(--muted);
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .title-tags-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .survey-title {
+    margin-bottom: 0;
+  }
 }
 </style>
