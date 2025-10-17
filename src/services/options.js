@@ -195,5 +195,33 @@ export const defaultOptions = {
     { id: 'male', label: '男性', order: 1 },
     { id: 'female', label: '女性', order: 2 },
     { id: 'other', label: '其他', order: 3 }
+  ],
+  
+  // 用戶年齡區間
+  ageRanges: [
+    { id: 'under-18', label: '未滿18歲', order: 1 },
+    { id: '18-25', label: '18-25歲', order: 2 },
+    { id: '26-35', label: '26-35歲', order: 3 },
+    { id: '36-45', label: '36-45歲', order: 4 },
+    { id: '46-55', label: '46-55歲', order: 5 },
+    { id: '56+', label: '56歲以上', order: 6 }
+  ],
+  
+  // 用戶性別
+  genders: [
+    { id: 'male', label: '男性', order: 1 },
+    { id: 'female', label: '女性', order: 2 },
+    { id: 'non-binary', label: '非二元性別', order: 3 },
+    { id: 'prefer-not-say', label: '不願透露', order: 4 }
+  ],
+  
+  // 用戶所在地區
+  regions: [
+    { id: 'north', label: '北部地區', order: 1 },
+    { id: 'central', label: '中部地區', order: 2 },
+    { id: 'south', label: '南部地區', order: 3 },
+    { id: 'east', label: '東部地區', order: 4 },
+    { id: 'island', label: '離島', order: 5 },
+    { id: 'overseas', label: '海外', order: 6 }
   ]
 };

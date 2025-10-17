@@ -132,7 +132,7 @@
             
             <!-- 已登入用戶 -->
             <BaseButton v-else variant="primary" size="default" @click="startSurvey">
-              開始作答
+              {{ userAnswerStatus === 'done' ? '已完成' : userAnswerStatus === 'doing' ? '繼續填答' : '開始作答' }}
             </BaseButton>
           </div>
         </div>
@@ -228,9 +228,46 @@ const showStartModal = ref(false)
 // 狀態控制
 const isUpdatingStatus = ref(false)
 
+// 用戶的回填狀態
+const userMatch = ref(null)
+
 // 檢查是否為問卷擁有者
 const isOwner = computed(() => {
   return user.value && survey.value && user.value.uid === survey.value.createdBy
+})
+
+// 檢查用戶是否已經有此問卷的回填記錄
+const checkUserMatch = async () => {
+  if (!user.value || !survey.value) return
+  
+  try {
+    const matches = await matchesService.getUserMatches(user.value.uid)
+    const match = matches.find(m => 
+      (m.role === 'requester' && m.ownerSurveyId === survey.value.id) ||
+      (m.role === 'counterpart' && m.selectedMySurveyId === survey.value.id)
+    )
+    
+    if (match) {
+      userMatch.value = match
+      console.log('找到現有配對:', match)
+    }
+  } catch (error) {
+    console.error('檢查回填狀態失敗:', error)
+  }
+}
+
+// 計算用戶回填狀態
+const userAnswerStatus = computed(() => {
+  if (!userMatch.value) return null
+  
+  const match = userMatch.value
+  const role = match.role
+  const isDone = role === 'requester' ? match.requesterDone : match.counterpartDone
+  const hasStarted = role === 'requester' ? match.requesterResponseId : match.counterpartResponseId
+  
+  if (isDone) return 'done'
+  if (hasStarted) return 'doing'
+  return 'pending'
 })
 
 // 返回功能
@@ -300,7 +337,27 @@ const startSurvey = () => {
     return
   }
   
-  // 顯示選擇彈窗
+  // 如果已經有配對記錄，根據狀態處理
+  if (userMatch.value) {
+    const status = userAnswerStatus.value
+    
+    if (status === 'done') {
+      alert('您已完成此問卷')
+      return
+    }
+    
+    if (status === 'doing') {
+      // 繼續填答 - 直接開啟外部問卷
+      if (survey.value.link) {
+        window.open(survey.value.link, '_blank', 'noopener,noreferrer')
+      } else {
+        alert('問卷連結不存在')
+      }
+      return
+    }
+  }
+  
+  // 沒有配對記錄或狀態是 pending，顯示選擇彈窗
   showStartModal.value = true
 }
 
@@ -317,14 +374,17 @@ const handleStartConfirm = async (selection) => {
     )
     
     // 2. 創建待驗證回應記錄
-    const response = await responsesService.createPendingResponse(surveyId)
+    const response = await responsesService.createPendingResponse(surveyId, match.matchId)
     
     // 3. 更新配對的 response ID
     await matchesService.updateMatchResponseId(match.matchId, response.responseId, true)
     
     console.log('互填配對創建完成:', { match, response })
     
-    // 4. 關閉彈窗並開啟外部問卷
+    // 4. 更新本地 userMatch 狀態
+    await checkUserMatch()
+    
+    // 5. 關閉彈窗並開啟外部問卷
     showStartModal.value = false
     
     if (survey.value.link) {
@@ -417,6 +477,11 @@ const loadSurvey = async () => {
     const surveyId = route.params.id
     const surveyData = await surveyService.getSurveyWithLabels(surveyId)
     survey.value = surveyData
+    
+    // 載入完成後，檢查用戶的回填狀態
+    if (user.value) {
+      await checkUserMatch()
+    }
   } catch (err) {
     console.error('載入問卷失敗:', err)
     error.value = err.message || '載入問卷失敗'

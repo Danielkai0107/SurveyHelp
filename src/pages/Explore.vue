@@ -102,6 +102,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import SurveyCard from '../components/SurveyCard.vue'
 import BaseSelect from '../components/BaseSelect.vue'
 import { useOptions } from '../composables/useOptions.js'
+import { useAuth } from '../composables/useAuth.js'
 import { surveyService } from '../services/firebase.js'
 
 // 主要標籤
@@ -115,6 +116,7 @@ const activeMainTab = ref('all')
 
 // 使用 Firestore 選項
 const { allOptions, initOptions } = useOptions()
+const { user } = useAuth()
 
 // 計算篩選選項
 const fieldFilters = computed(() => allOptions.value.fields || [])
@@ -137,6 +139,11 @@ const allContent = ref([])
 // 篩選後的內容
 const filteredContent = computed(() => {
   let content = allContent.value
+
+  // 過濾掉用戶自己發布的問卷
+  if (user.value) {
+    content = content.filter(item => item.createdBy !== user.value.uid)
+  }
 
   // 主要標籤篩選
   if (activeMainTab.value !== 'all') {
@@ -258,7 +265,7 @@ onMounted(async () => {
 
 /* 主要標籤區域 */
 .main-tabs-section {
-  margin-top: 24px;
+  margin-top: 32px;
 }
 
 .main-tabs {

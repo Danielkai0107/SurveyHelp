@@ -21,7 +21,6 @@ import {
   serverTimestamp
 } from 'firebase/firestore';
 import { auth, db } from '../firebase.js';
-import { verificationService } from './verification.js';
 import { optionsService } from './options.js';
 
 // 認證服務
@@ -86,18 +85,11 @@ export const authService = {
 
 // 問卷服務
 export const surveyService = {
-  // 創建問卷（支援驗證連結）
+  // 創建問卷
   async createSurvey(surveyData) {
     try {
-      // 生成驗證相關資料
-      const verificationId = surveyData.verificationId || verificationService.generateVerificationId();
-      const verificationLink = verificationService.generateVerificationLink(verificationId);
-      
       const docRef = await addDoc(collection(db, 'surveys'), {
         ...surveyData,
-        verificationId,
-        verificationLink,
-        verificationCount: 0,
         filled: 0,
         isActive: true,
         createdAt: serverTimestamp(),
@@ -105,9 +97,12 @@ export const surveyService = {
         createdBy: auth.currentUser?.uid || null
       });
       
+      // 使用新验证系统生成验证链接
+      const { responsesService } = await import('./responses.js');
+      const verificationLink = responsesService.generateVerifyLink(docRef.id);
+      
       return {
         surveyId: docRef.id,
-        verificationId,
         verificationLink
       };
     } catch (error) {

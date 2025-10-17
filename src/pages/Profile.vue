@@ -143,9 +143,11 @@ const loadPointsRecords = async () => {
     isLoadingRecords.value = true
     const records = await pointsService.getUserPointsRecords(user.value.uid)
     pointsRecords.value = records
-    console.log('積分記錄:', records.length, '筆')
+    console.log('積分記錄載入完成:', records.length, '筆')
+    console.log('記錄詳情:', records)
   } catch (error) {
     console.error('載入積分記錄失敗:', error)
+    console.error('錯誤詳情:', error)
   } finally {
     isLoadingRecords.value = false
   }
@@ -199,6 +201,9 @@ onMounted(async () => {
 }
 
 .page-title {
+  display: flex;
+  align-items: center;
+  height: 64px;
   font-size: 40px;
   font-weight: 400;
   color: var(--text);

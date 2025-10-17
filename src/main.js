@@ -32,6 +32,7 @@ import Publish from './pages/Publish.vue'
 import EditSurvey from './pages/EditSurvey.vue'
 import PublishSuccess from './pages/PublishSuccess.vue'
 import Auth from './pages/Auth.vue'
+import Terms from './pages/Terms.vue'
 import NotFound from './pages/NotFound.vue'
 
 const routes = [
@@ -46,6 +47,7 @@ const routes = [
   { path: '/publish/edit/:id', component: EditSurvey },
   { path: '/publish/:id/success', component: PublishSuccess },
   { path: '/auth', component: Auth },
+  { path: '/terms', component: Terms },
   { path: '/:pathMatch(.*)*', component: NotFound },
 ]
 

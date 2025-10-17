@@ -14,8 +14,8 @@
     <!-- 未登入：顯示登入提示 -->
     <div v-else class="auth-required">
       <div class="auth-prompt">
-        <h2 class="auth-title">請先註冊會員</h2>
-        <p class="auth-message">此功能需要登入後才能使用</p>
+        <h2 class="auth-title">請先註冊 SurveyHelp 會員</h2>
+        <p class="auth-message">登入後才能使用此功能</p>
         
         <div class="auth-actions">
           <BaseButton 
@@ -64,9 +64,8 @@ const goToExplore = () => {
 .auth-guard {
   min-height: 80vh;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 0px 24px;
 }
 
 .auth-loading {
@@ -108,7 +107,7 @@ const goToExplore = () => {
 
 .auth-prompt {
   text-align: center;
-  max-width: 400px;
+  padding: 72px;
 }
 
 .auth-icon {
@@ -118,10 +117,10 @@ const goToExplore = () => {
 }
 
 .auth-title {
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 600;
   color: var(--text);
-  margin: 0 0 12px 0;
+  margin: 0 0 8px 0;
 }
 
 .auth-message {

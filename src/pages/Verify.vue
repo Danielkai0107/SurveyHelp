@@ -1,11 +1,23 @@
 <template>
   <div class="card text-center p-8">
-    <div v-if="loading" class="mb-6">
+    <!-- 未登入提示 -->
+    <div v-if="!isAuthenticated && !loading" class="mb-6">
+      <div style="font-size:48px; margin-bottom:16px">🔐</div>
+      <h2 class="mb-3">請先登入</h2>
+      <p class="text-muted mb-6">驗證填答記錄需要登入帳號</p>
+      <BaseButton variant="primary" size="default" @click="goToLogin">
+        前往登入
+      </BaseButton>
+    </div>
+
+    <!-- 驗證中 -->
+    <div v-else-if="loading" class="mb-6">
       <LoadingSpinner />
       <h2 class="mb-3 mt-4">正在驗證中...</h2>
       <p class="text-muted">請稍候，我們正在確認您的填答記錄</p>
     </div>
     
+    <!-- 驗證結果 -->
     <div v-else>
       <template v-if="ok">
         <div class="mb-6">
@@ -67,15 +79,31 @@
 </template>
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import BaseButton from '../components/BaseButton.vue'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import { responsesService } from '../services/responses.js'
+import { useAuth } from '../composables/useAuth.js'
 
 const route = useRoute()
+const router = useRouter()
+const { user, isLoading: authLoading } = useAuth()
+
 const loading = ref(true)
 const verificationResult = ref(null)
 const error = ref('')
+
+// 检查是否已登入
+const isAuthenticated = computed(() => {
+  return !authLoading.value && !!user.value
+})
+
+// 前往登入页面，并保存当前 URL 以便登入后返回
+const goToLogin = () => {
+  // 保存验证 URL 到 sessionStorage
+  sessionStorage.setItem('verifyUrl', window.location.href)
+  router.push('/auth')
+}
 
 // 驗證流程
 onMounted(async () => {
@@ -85,6 +113,18 @@ onMounted(async () => {
     
     if (!surveyId) {
       throw new Error('缺少問卷 ID 參數')
+    }
+    
+    // 等待认证状态加载
+    while (authLoading.value) {
+      await new Promise(resolve => setTimeout(resolve, 100))
+    }
+    
+    // 检查是否已登入
+    if (!user.value) {
+      console.log('用户未登入，等待登入')
+      loading.value = false
+      return
     }
     
     // 執行驗證

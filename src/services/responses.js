@@ -8,7 +8,8 @@ import {
   query, 
   where, 
   serverTimestamp,
-  Timestamp
+  Timestamp,
+  increment
 } from 'firebase/firestore';
 import { signInAnonymously } from 'firebase/auth';
 import { auth, db } from '../firebase.js';
@@ -30,7 +31,7 @@ export const responsesService = {
       const existingQuery = query(
         collection(db, 'responses'),
         where('surveyId', '==', surveyId),
-        where('anonUid', '==', currentUser.uid),
+        where('respondentUidOrAnon', '==', currentUser.uid),
         where('status', '==', 'pending')
       );
       
@@ -133,6 +134,19 @@ export const responsesService = {
 
       console.log('驗證成功，已更新回應狀態');
 
+      // 更新問卷的填答人數
+      try {
+        const { surveyService } = await import('./firebase.js');
+        const surveyRef = doc(db, 'surveys', surveyId);
+        await updateDoc(surveyRef, {
+          filled: increment(1),
+          updatedAt: serverTimestamp()
+        });
+        console.log('問卷填答人數已更新');
+      } catch (error) {
+        console.error('更新問卷填答人數失敗:', error);
+      }
+
       // 處理互填配對和積分記錄
       let mutualBonus = 0;
       let matchCompleted = false;
@@ -226,7 +240,7 @@ export const responsesService = {
 
       const responsesQuery = query(
         collection(db, 'responses'),
-        where('anonUid', '==', currentUser)
+        where('respondentUidOrAnon', '==', currentUser)
       );
 
       const responsesSnap = await getDocs(responsesQuery);

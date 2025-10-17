@@ -5,7 +5,7 @@
       <div class="sticky-header">
         <!-- 頁面標題 -->
         <div class="page-header">
-          <h1 class="page-title">回填管理</h1>
+          <h1 class="page-title">互惠管理</h1>
         </div>
 
         <!-- 標籤篩選 -->
@@ -112,14 +112,19 @@
           </div>
         </div>
       </div>
-    <EmptyState v-else title="暫無資料" subtitle="去探索頁看看吧" ctaText="探索問卷" to="/" />
+        <!-- 空狀態 -->
+        <div v-else class="empty-state">
+          <div class="empty-title">暫無資料</div>
+          <div class="empty-description">
+            去探索頁看看吧
+          </div>
+        </div>
   </div>
     </div>
   </AuthGuard>
 </template>
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import EmptyState from '../components/EmptyState.vue'
 import BaseButton from '../components/BaseButton.vue'
 import AuthGuard from '../components/AuthGuard.vue'
 import { matchesService } from '../services/matches.js'
@@ -154,6 +159,11 @@ const loadMatches = async () => {
             match.role === 'requester' ? match.ownerSurveyId : match.selectedMySurveyId
           )
           
+          // 如果問卷不存在（已被刪除），返回 null
+          if (!targetSurvey) {
+            return null
+          }
+          
           // 載入我的問卷資訊（如果有選擇）
           let mySurvey = null
           if (match.selectedMySurveyId && match.role === 'requester') {
@@ -177,18 +187,15 @@ const loadMatches = async () => {
           }
         } catch (error) {
           console.error('載入配對詳情失敗:', error)
-          return {
-            ...match,
-            targetSurvey: { title: '載入失敗', id: match.ownerSurveyId },
-            status: 'error',
-            statusText: '載入失敗'
-          }
+          // 如果是問卷不存在的錯誤，返回 null（過濾掉）
+          return null
         }
       })
     )
     
-    allMatches.value = enrichedMatches
-    console.log('載入完成，共', enrichedMatches.length, '個配對')
+    // 過濾掉已刪除的問卷（null 值）
+    allMatches.value = enrichedMatches.filter(match => match !== null)
+    console.log('載入完成，共', allMatches.value.length, '個有效配對')
     
   } catch (error) {
     console.error('載入回填管理失敗:', error)
@@ -327,6 +334,9 @@ onMounted(() => {
 }
 
 .page-title {
+  display: flex;
+  align-items: center;
+  height: 64px;
   font-size: 40px;
   font-weight: 400;
   color: var(--text);
@@ -380,6 +390,30 @@ onMounted(() => {
 .loading-text {
   font-size: 16px;
   color: var(--muted);
+}
+
+/* 空狀態 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  text-align: center;
+  gap: 16px;
+}
+
+.empty-title {
+  font-size: 20px;
+  font-weight: 400;
+  color: #6c6c6c;
+}
+
+.empty-description {
+  font-size: 13px;
+  color: #9d9d9d;
+  max-width: 400px;
+  line-height: 1.5;
 }
 
 /* 列表容器 */

@@ -5,7 +5,6 @@
     <div class="progress-header">
       <div class="progress-info">
         <h1 class="page-title">{{ steps[currentStep].title }}</h1>
-        <p class="page-description">{{ steps[currentStep].description }}</p>
       </div>
       <div class="progress-indicator">
         <span class="progress-text">{{ currentStep + 1 }} / {{ steps.length }}</span>
@@ -232,62 +231,8 @@
         </div>
       </div>
 
-      <!-- 步驟 3: 驗證設定 -->
+      <!-- 步驟 3: 預覽確認 -->
       <div v-if="currentStep === 2" class="step-panel">
-        <div class="form-grid">
-          <!-- 驗證連結生成 -->
-          <div class="form-group">
-            <label class="label required">驗證連結</label>
-            <div class="link-container">
-              <BaseInput
-                :model-value="verificationLink"
-                placeholder="驗證連結將自動生成..."
-                readonly
-                style="flex: 1; font-family: monospace; font-size: 13px;"
-              />
-              <CopyButton :text="verificationLink" />
-            </div>
-            <div class="help-text">請將此連結添加到您問卷的最後一頁，用戶完成問卷後需要點擊此連結來驗證完成。<br>
-            <strong>注意：</strong>發布後連結中的 surveyId 會自動更新為真實的問卷 ID。</div>
-          </div>
-
-          <!-- 平台教學 -->
-          <div class="form-group">
-            <label class="label">添加教學</label>
-            
-            <!-- 平台選擇 -->
-            <div class="platform-tabs">
-              <button 
-                v-for="platform in platforms" 
-                :key="platform"
-                :class="['platform-tab', { active: selectedPlatform === platform }]"
-                @click="selectedPlatform = platform"
-              >
-                {{ platform }}
-              </button>
-            </div>
-
-            <!-- 教學圖片區域 -->
-            <div class="tutorial-image">
-              <div class="image-placeholder">
-                <p>{{ selectedPlatform }} 教學圖片</p>
-                <small>此處將顯示 {{ selectedPlatform }} 的添加連結教學圖片</small>
-              </div>
-            </div>
-            <div class="help-text">選擇您使用的問卷平台，查看如何添加驗證連結的教學。</div>
-          </div>
-
-          <!-- 確認勾選 -->
-          <div class="form-group verification-checkbox">
-            <CustomCheckbox v-model="verificationAdded">
-              我已將驗證連結添加到問卷的最後一頁
-            </CustomCheckbox>
-          </div>
-        </div>
-      </div>
-
-      <!-- 步驟 4: 預覽確認 -->
-      <div v-if="currentStep === 3" class="step-panel">
 
         <div class="preview-section">
           <div class="preview-card">
@@ -347,23 +292,6 @@
                 </a>
               </div>
               
-              <!-- 驗證連結 -->
-              <div class="verification-link-section">
-                <div class="detail-item">
-                  <span class="detail-label">驗證連結：</span>
-                </div>
-                <div class="verification-link-container">
-                  <span class="verification-link">{{ verificationLink }}</span>
-                  <BaseButton 
-                    variant="secondary" 
-                    size="small" 
-                    @click="copyVerificationLink"
-                    :disabled="!verificationLink"
-                  >
-                    {{ copySuccess ? '已複製' : '複製' }}
-                  </BaseButton>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -371,14 +299,8 @@
             <div class="verification-card">
               <h4>請確認完成以下事項，並勾選完成</h4>
               <div class="checklist">
-                <CustomCheckbox v-model="checks.linkTested">
-                  我已測試問卷連結可以正常開啟
-                </CustomCheckbox>
                 <CustomCheckbox v-model="checks.contentReviewed">
                   我已檢查問卷內容無誤
-                </CustomCheckbox>
-                <CustomCheckbox v-model="checks.returnLinkAdded">
-                  我已在外部問卷最後頁添加返回驗證連結
                 </CustomCheckbox>
                 <CustomCheckbox v-model="checks.termsAccepted">
                   我同意問卷發布條款和隱私政策
@@ -431,14 +353,11 @@ import CustomCheckbox from '../components/CustomCheckbox.vue'
 import BaseInput from '../components/BaseInput.vue'
 import BaseSelect from '../components/BaseSelect.vue'
 import BaseButton from '../components/BaseButton.vue'
-import CopyButton from '../components/CopyButton.vue'
 import TopicSelector from '../components/TopicSelector.vue'
 import AuthGuard from '../components/AuthGuard.vue'
 import { useOptions, useTopicOptions } from '../composables/useOptions.js'
 import { useAuth } from '../composables/useAuth.js'
 import { surveyService } from '../services/firebase.js'
-import { verificationService } from '../services/verification.js'
-import { responsesService } from '../services/responses.js'
 
 const router = useRouter()
 
@@ -458,16 +377,12 @@ const { user } = useAuth()
 // 步驟定義
 const steps = ref([
   {
-    title: '發起互填',
+    title: '發布貼文',
     description: '請輸入此互評的基本信息'
   },
   {
     title: '問卷設定',
     description: '設定問卷的技術參數和參與條件'
-  },
-  {
-    title: '添加驗證連結',
-    description: '複製平台驗證連結並添加到您的問卷中'
   },
   {
     title: '預覽確認',
@@ -505,17 +420,10 @@ const currentUserName = computed(() => {
 // 驗證錯誤
 const errors = ref({})
 
-// 驗證連結設定
-const verificationLink = ref('')
-const selectedPlatform = ref('Google Forms')
-const platforms = ref(['Google Forms', 'SurveyCake', 'Tally'])
-const verificationAdded = ref(false)
 
 // 檢查清單
 const checks = ref({
-  linkTested: false,
   contentReviewed: false,
-  returnLinkAdded: false,
   termsAccepted: false
 })
 
@@ -549,17 +457,6 @@ const targetAudienceText = computed(() => {
   return parts.length > 0 ? parts.join('、') : ''
 })
 
-// 生成驗證連結
-const generateVerificationLink = () => {
-  // 使用問卷 ID 生成固定的驗證連結（將在發布後使用真實的 surveyId）
-  const tempSurveyId = 'temp_' + Math.random().toString(36).substr(2, 9)
-  verificationLink.value = responsesService.generateVerifyLink(tempSurveyId)
-  
-  // 暫存，發布成功後會用真實的 surveyId 替換
-  form.value.tempSurveyId = tempSurveyId
-}
-
-// 複製連結功能已移至 CopyButton 組件
 
 // 驗證第一步
 const validateStep1 = () => {
@@ -623,9 +520,6 @@ const canProceed = computed(() => {
   if (currentStep.value === 1) {
     return form.value.link.trim() !== '' && form.value.minutes > 0 && form.value.targetCount >= 10
   }
-  if (currentStep.value === 2) {
-    return verificationAdded.value
-  }
   return true
 })
 
@@ -647,11 +541,6 @@ const nextStep = () => {
   if (isValid && currentStep.value < steps.value.length - 1) {
     currentStep.value++
     errors.value = {}
-    
-    // 如果進入驗證設定步驟，生成驗證連結
-    if (currentStep.value === 2 && !verificationLink.value) {
-      generateVerificationLink()
-    }
     
     // 自動滾動到頂部
     window.scrollTo({
@@ -718,9 +607,7 @@ const publishSurvey = async () => {
     
     console.log('問卷發布成功:', result)
     
-    // 更新驗證連結為真實的 surveyId
-    verificationLink.value = responsesService.generateVerifyLink(result.surveyId)
-    
+    // 跳转到成功页面
     router.push(`/publish/${result.surveyId}/success`)
   } catch (error) {
     console.error('發布問卷失敗:', error)
@@ -767,15 +654,18 @@ onMounted(async () => {
 }
 
 .progress-info {
-  margin-bottom: 24px;
+  margin-bottom: 12px;
 }
 
 .page-title {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 64px;
   font-size: 40px;
   font-weight: 400;
   color: var(--text);
-  margin: 0 0 12px 0;
-  line-height: 1.3;
+  margin: 0;
 }
 
 .page-description {
@@ -1028,82 +918,6 @@ select.input:hover {
 }
 
 
-/* 驗證設定步驟樣式 */
-
-.link-container {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.link-input {
-  flex: 1;
-  font-family: monospace;
-  font-size: 13px;
-}
-
-/* 複製按鈕樣式已移至 CopyButton 組件 */
-
-.platform-tabs {
-  display: flex;
-  gap: 0;
-  border: 1px solid var(--border);
-  border-radius: 40px;
-  overflow: hidden;
-  margin-bottom: 24px;
-}
-
-.platform-tab {
-  flex: 1;
-  padding: 12px 16px;
-  background: white;
-  border: none;
-  border-right: 1px solid var(--border);
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--muted);
-  transition: all 0.2s ease;
-}
-
-.platform-tab:last-child {
-  border-right: none;
-}
-
-.platform-tab:hover {
-  background: var(--hover);
-  color: var(--text);
-}
-
-.platform-tab.active {
-  background: var(--text);
-  color: white;
-}
-
-.tutorial-image {
-  background: #f8f9fa;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  min-height: 300px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.image-placeholder {
-  text-align: center;
-  color: var(--muted);
-}
-
-.image-placeholder p {
-  margin: 0 0 8px 0;
-  font-size: 16px;
-  font-weight: 500;
-}
-
-.image-placeholder small {
-  font-size: 12px;
-}
 
 
 /* 步驟導航 */
@@ -1152,12 +966,6 @@ select.input:hover {
   cursor: not-allowed;
 }
 
-/* 驗證設定步驟的 CustomCheckbox 置中 */
-.verification-checkbox {
-  display: flex;
-  justify-content: center;
-  margin: 24px 0;
-}
 
 /* 預覽區域的連結樣式 */
 .survey-link-section {
