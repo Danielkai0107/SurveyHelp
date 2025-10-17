@@ -140,8 +140,20 @@ const loadMySurveys = async () => {
     isLoading.value = true
     const surveys = await surveyService.getUserSurveys(user.value.uid)
     
+    // 載入詳細資訊（包含標籤轉換）
+    const enrichedSurveys = await Promise.all(
+      surveys.map(async (survey) => {
+        try {
+          return await surveyService.getSurveyWithLabels(survey.id)
+        } catch (error) {
+          console.error('載入問卷詳情失敗:', error)
+          return survey
+        }
+      })
+    )
+    
     // 過濾掉當前要填答的問卷（避免自己填自己的）
-    mySurveys.value = surveys.filter(survey => survey.id !== props.targetSurvey.id)
+    mySurveys.value = enrichedSurveys.filter(survey => survey.id !== props.targetSurvey.id)
     
     console.log('載入我的問卷:', mySurveys.value.length, '個')
   } catch (error) {

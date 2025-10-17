@@ -238,7 +238,7 @@
           <div class="preview-card">
             <div class="survey-preview">
               <div class="survey-meta">
-                <span class="survey-category">{{ form.field }}</span>
+                <span class="survey-category">{{ getFieldLabel(form.field) }}</span>
                 <span class="survey-date">{{ new Date().toLocaleDateString() }}</span>
               </div>
               <h3 class="survey-title">{{ form.title || '未填寫標題' }}</h3>
@@ -254,15 +254,15 @@
               <div class="survey-details">
                 <div class="detail-item">
                   <span class="detail-label">領域：</span>
-                  <span class="detail-value">{{ form.field }}</span>
+                  <span class="detail-value">{{ getFieldLabel(form.field) }}</span>
                 </div>
                 <div class="detail-item">
                   <span class="detail-label">用途：</span>
-                  <span class="detail-value">{{ form.purpose }}</span>
+                  <span class="detail-value">{{ getPurposeLabel(form.purpose) }}</span>
                 </div>
                 <div class="detail-item">
                   <span class="detail-label">語言：</span>
-                  <span class="detail-value">{{ form.language }}</span>
+                  <span class="detail-value">{{ getLanguageLabel(form.language) }}</span>
                 </div>
                 <div class="detail-item">
                   <span class="detail-label">時間：</span>
@@ -451,9 +451,22 @@ const parsedTags = computed(() => {
 // 目標受眾文字
 const targetAudienceText = computed(() => {
   const parts = []
-  if (form.value.targetAge) parts.push(form.value.targetAge)
-  if (form.value.targetGroup) parts.push(form.value.targetGroup)
-  if (form.value.targetGender) parts.push(form.value.targetGender)
+  
+  if (form.value.targetAge) {
+    const ageLabel = (allOptions.value.targetAges || []).find(a => a.id === form.value.targetAge)?.label
+    if (ageLabel) parts.push(ageLabel)
+  }
+  
+  if (form.value.targetGroup) {
+    const groupLabel = (allOptions.value.targetGroups || []).find(g => g.id === form.value.targetGroup)?.label
+    if (groupLabel) parts.push(groupLabel)
+  }
+  
+  if (form.value.targetGender) {
+    const genderLabel = (allOptions.value.targetGenders || []).find(g => g.id === form.value.targetGender)?.label
+    if (genderLabel) parts.push(genderLabel)
+  }
+  
   return parts.length > 0 ? parts.join('、') : ''
 })
 
@@ -620,6 +633,27 @@ const getTopicLabel = (topicId) => {
   const topics = allOptions.value.topics || []
   const topic = topics.find(t => t.id === topicId)
   return topic ? topic.label : topicId
+}
+
+// 獲取領域標籤
+const getFieldLabel = (fieldId) => {
+  const fields = allOptions.value.fields || []
+  const field = fields.find(f => f.id === fieldId)
+  return field ? field.label : fieldId
+}
+
+// 獲取用途標籤
+const getPurposeLabel = (purposeId) => {
+  const purposes = allOptions.value.purposes || []
+  const purpose = purposes.find(p => p.id === purposeId)
+  return purpose ? purpose.label : purposeId
+}
+
+// 獲取語言標籤
+const getLanguageLabel = (languageId) => {
+  const languages = allOptions.value.languages || []
+  const language = languages.find(l => l.id === languageId)
+  return language ? language.label : languageId
 }
 
 // 初始化選項資料

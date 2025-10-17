@@ -1,10 +1,11 @@
 <template>
-  <div class="card text-center p-8">
+  <div class="page-wrapper">
+    <div class="verify-container">
     <!-- 未登入提示 -->
     <div v-if="!isAuthenticated && !loading" class="mb-6">
       <div style="font-size:48px; margin-bottom:16px">🔐</div>
       <h2 class="mb-3">請先登入</h2>
-      <p class="text-muted mb-6">驗證填答記錄需要登入帳號</p>
+      <p class="text-muted">驗證填答記錄需要登入帳號</p>
       <BaseButton variant="primary" size="default" @click="goToLogin">
         前往登入
       </BaseButton>
@@ -21,9 +22,8 @@
     <div v-else>
       <template v-if="ok">
         <div class="mb-6">
-          <div style="font-size:64px; margin-bottom:16px">🎉</div>
-          <h2 class="mb-3" style="color:var(--success)">驗證成功！</h2>
-          <div class="p-4 rounded-lg mb-4" style="background:#f0fff4; border:1px solid #9ae6b4">
+          <h2 class="title">驗證成功 🎉</h2>
+          <div class="points-container">
             <div class="points-breakdown">
               <div class="points-item">
                 <span>填答積分：</span>
@@ -47,33 +47,33 @@
         
         <div class="flex gap-3 justify-center">
           <BaseButton variant="primary" size="default" to="/">
-            🏠 回到首頁
+            回到首頁
           </BaseButton>
           <BaseButton variant="secondary" size="default" to="/me/answers">
-            📋 查看我的填答
+            查看我的填答
           </BaseButton>
         </div>
       </template>
       
       <template v-else>
         <div class="mb-6">
-          <div style="font-size:48px; margin-bottom:16px">❌</div>
-          <h2 class="mb-3" style="color:var(--danger)">驗證失敗</h2>
-          <div class="p-4 rounded-lg mb-4" style="background:#fed7d7; border:1px solid #fc8181">
-            <p class="font-medium" style="color:#c53030; margin:0">{{ reason }}</p>
+          <h2 class="title">驗證失敗 ❌</h2>
+          <div class="error-msg-container">
+            <p class="error-msg" >{{ reason }}</p>
           </div>
           <p class="text-muted">請檢查填答是否完整，或聯繫客服協助處理</p>
         </div>
         
         <div class="flex gap-3 justify-center">
           <BaseButton variant="primary" size="default" :to="detailLink">
-            🔄 重新嘗試
+            重新嘗試
           </BaseButton>
           <BaseButton variant="secondary" size="default" to="/">
-            🏠 回到首頁
+            回到首頁
           </BaseButton>
         </div>
       </template>
+    </div>
     </div>
   </div>
 </template>
@@ -153,6 +153,103 @@ const detailLink = computed(() => `/s/${route.query.surveyId || 'a1'}`)
 </script>
 
 <style scoped>
+.page-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: 40px 24px;
+}
+
+.title{
+  font-size: 40px;
+  font-weight: 400;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.3;
+  margin-bottom: 24px;
+}
+
+.verify-container {
+  background: var(--card);
+  border: none;
+  border-radius: 16px;
+  padding: 32px;
+  text-align: center;
+  max-width: 700px;
+  width: 100%;
+  /* 移除陰影和 hover 效果 */
+}
+
+.points-container {
+  background: #f0fff4;
+  border: 1px solid #9ae6b4;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.error-msg-container {
+  background: #fed7d7;
+  border: 1px solid #fc8181;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.error-msg {
+  color: #c53030;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.mb-3 {
+  margin-bottom: 12px;
+}
+
+.mb-4 {
+  margin-bottom: 16px;
+}
+
+.mb-6 {
+  margin-bottom: 24px;
+}
+
+.mt-4 {
+  margin-top: 16px;
+}
+
+.p-4 {
+  padding: 16px;
+}
+
+.rounded-lg {
+  border-radius: 12px;
+}
+
+.text-muted {
+  color: var(--muted);
+  font-size: 14px;
+  margin: 24px 0;
+}
+
+.font-medium {
+  font-weight: 500;
+}
+
+.flex {
+  display: flex;
+}
+
+.gap-3 {
+  gap: 12px;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
 .points-breakdown {
   display: flex;
   flex-direction: column;
@@ -201,5 +298,34 @@ const detailLink = computed(() => `/s/${route.query.surveyId || 'a1'}`)
   font-size: 12px;
   font-weight: 500;
   text-align: center;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .page-wrapper {
+    padding: 24px 16px;
+    align-items: flex-start;
+    padding-top: 80px;
+  }
+  
+  .verify-container {
+    padding: 24px;
+    max-width: 100%;
+  }
+  
+  .flex {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-wrapper {
+    padding: 16px 12px;
+    padding-top: 70px;
+  }
+  
+  .verify-container {
+    padding: 20px;
+  }
 }
 </style>
