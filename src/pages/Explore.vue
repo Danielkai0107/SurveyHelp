@@ -399,6 +399,7 @@ onMounted(async () => {
 /* 內容區域 */
 .content-area {
   min-height: 600px;
+  padding: 0 20px;
 }
 
 /* 載入狀態 */

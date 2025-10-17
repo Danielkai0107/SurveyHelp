@@ -1,6 +1,7 @@
 <template>
   <div v-if="visible" class="modal-overlay" @click="closeModal">
     <div class="modal-content" @click.stop>
+      <!-- 固定 Header -->
       <div class="modal-header">
         <h3 class="modal-title">選擇要對方回填的我的問卷</h3>
         <button @click="closeModal" class="close-btn">
@@ -11,6 +12,7 @@
         </button>
       </div>
 
+      <!-- 可滾動 Body -->
       <div class="modal-body">
         <!-- 積分說明 -->
         <div class="points-info">
@@ -79,6 +81,7 @@
         </div>
       </div>
 
+      <!-- 固定 Footer -->
       <div class="modal-footer">
         <div class="total-points">
           <span class="total-label">預計可獲得：</span>
@@ -201,16 +204,19 @@ onMounted(() => {
   max-width: 600px;
   width: 100%;
   max-height: 80vh;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   position: relative;
+  overflow: hidden;
 }
 
 .modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 24px 24px 0;
-  margin-bottom: 20px;
+  padding: 24px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 .modal-title {
@@ -239,7 +245,9 @@ onMounted(() => {
 }
 
 .modal-body {
-  padding: 0 24px;
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
 }
 
 .points-info {
@@ -310,8 +318,6 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: 300px;
-  overflow-y: auto;
 }
 
 .survey-card {
@@ -327,8 +333,9 @@ onMounted(() => {
 }
 
 .survey-card.active {
-  border-color: var(--text);
   background: #f8f9fa;
+  border: 2px solid var(--text);
+
 }
 
 .survey-card.no-selection {
@@ -426,7 +433,7 @@ onMounted(() => {
 .modal-footer {
   padding: 20px 24px 24px;
   border-top: 1px solid var(--border);
-  margin-top: 24px;
+  flex-shrink: 0;
 }
 
 .total-points {
@@ -469,7 +476,7 @@ onMounted(() => {
   }
   
   .modal-header {
-    padding: 20px 20px 0;
+    padding: 20px;
   }
   
   .modal-title {
@@ -477,7 +484,7 @@ onMounted(() => {
   }
   
   .modal-body {
-    padding: 0 20px;
+    padding: 20px;
   }
   
   .modal-footer {
@@ -487,9 +494,39 @@ onMounted(() => {
   .modal-actions {
     flex-direction: column;
   }
+}
+
+@media (max-width: 480px) {
+  .modal-overlay {
+    padding: 12px;
+  }
   
-  .survey-cards {
-    max-height: 250px;
+  .modal-content {
+    border-radius: 16px;
+  }
+  
+  .modal-header {
+    padding: 16px;
+  }
+  
+  .modal-title {
+    font-size: 16px;
+  }
+  
+  .modal-body {
+    padding: 16px;
+  }
+  
+  .modal-footer {
+    padding: 12px 16px 16px;
+  }
+  
+  .points-info {
+    padding: 12px;
+  }
+  
+  .survey-card {
+    padding: 12px;
   }
 }
 </style>

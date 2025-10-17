@@ -7,7 +7,7 @@
 
         <!-- 驗證連結區域 -->
         <div class="verification-section">
-          <h3 class="section-title">驗證連結設定</h3>
+          <h3 class="section-title">請將以下連結放置您的問卷最後方</h3>
           
           <!-- 驗證連結 -->
           <div class="form-group">
@@ -18,9 +18,7 @@
                 readonly
                 class="link-input"
               />
-              <button @click="copyVerificationLink" class="copy-btn">
-                {{ copySuccess ? '已複製' : '複製' }}
-              </button>
+              <CopyButton :text="verificationLink" />
             </div>
             <div class="help-text">
               請將此連結添加到您外部問卷的最後一頁，用戶完成問卷後需要點擊此連結來驗證完成。
@@ -66,6 +64,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import BaseButton from '../components/BaseButton.vue'
+import CopyButton from '../components/CopyButton.vue'
 import AuthGuard from '../components/AuthGuard.vue'
 import { responsesService } from '../services/responses.js'
 
@@ -75,21 +74,6 @@ const route = useRoute()
 const verificationLink = ref('')
 const selectedPlatform = ref('Google Forms')
 const platforms = ref(['Google Forms', 'SurveyCake', 'Tally'])
-const copySuccess = ref(false)
-
-// 复制验证链接
-const copyVerificationLink = async () => {
-  try {
-    await navigator.clipboard.writeText(verificationLink.value)
-    copySuccess.value = true
-    setTimeout(() => {
-      copySuccess.value = false
-    }, 2000)
-  } catch (error) {
-    console.error('复制失败:', error)
-    alert('复制失败，请手动复制')
-  }
-}
 
 // 初始化
 onMounted(() => {
@@ -147,7 +131,8 @@ onMounted(() => {
   font-size: 20px;
   font-weight: 600;
   color: var(--text);
-  margin: 0 0 20px 0;
+  margin: 0 0 32px 0;
+  text-align: center;
 }
 
 .form-group {
@@ -165,7 +150,7 @@ onMounted(() => {
 .link-container {
   display: flex;
   gap: 12px;
-  align-items: stretch;
+  align-items: center;
 }
 
 .link-input {
@@ -174,26 +159,9 @@ onMounted(() => {
   font-size: 13px;
   padding: 12px 16px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 40px;
   background: #f8f9fa;
   color: var(--text);
-}
-
-.copy-btn {
-  padding: 12px 24px;
-  background: var(--text);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.copy-btn:hover {
-  background: #000;
 }
 
 .help-text {
@@ -242,7 +210,7 @@ onMounted(() => {
 .tutorial-image {
   background: #f8f9fa;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 20px;
   min-height: 300px;
   display: flex;
   align-items: center;
