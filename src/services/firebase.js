@@ -3,7 +3,8 @@ import {
   createUserWithEmailAndPassword, 
   signOut, 
   onAuthStateChanged,
-  updateProfile
+  updateProfile,
+  signInAnonymously
 } from 'firebase/auth';
 import { 
   collection, 
@@ -70,6 +71,16 @@ export const authService = {
   // 獲取當前用戶
   getCurrentUser() {
     return auth.currentUser;
+  },
+
+  // 匿名登入
+  async signInAnonymously() {
+    try {
+      const userCredential = await signInAnonymously(auth);
+      return userCredential.user;
+    } catch (error) {
+      throw error;
+    }
   }
 };
 

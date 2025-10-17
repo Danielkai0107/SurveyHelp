@@ -247,7 +247,8 @@
               />
               <CopyButton :text="verificationLink" />
             </div>
-            <div class="help-text">請將此連結添加到您問卷的最後一頁，用戶完成問卷後需要點擊此連結來驗證完成。</div>
+            <div class="help-text">請將此連結添加到您問卷的最後一頁，用戶完成問卷後需要點擊此連結來驗證完成。<br>
+            <strong>注意：</strong>發布後連結中的 surveyId 會自動更新為真實的問卷 ID。</div>
           </div>
 
           <!-- 平台教學 -->
@@ -437,6 +438,7 @@ import { useOptions, useTopicOptions } from '../composables/useOptions.js'
 import { useAuth } from '../composables/useAuth.js'
 import { surveyService } from '../services/firebase.js'
 import { verificationService } from '../services/verification.js'
+import { responsesService } from '../services/responses.js'
 
 const router = useRouter()
 
@@ -549,12 +551,12 @@ const targetAudienceText = computed(() => {
 
 // 生成驗證連結
 const generateVerificationLink = () => {
-  // 生成唯一的驗證 ID
-  const verificationId = verificationService.generateVerificationId()
-  verificationLink.value = verificationService.generateVerificationLink(verificationId)
+  // 使用問卷 ID 生成固定的驗證連結（將在發布後使用真實的 surveyId）
+  const tempSurveyId = 'temp_' + Math.random().toString(36).substr(2, 9)
+  verificationLink.value = responsesService.generateVerifyLink(tempSurveyId)
   
-  // 暫存驗證 ID，發布時使用
-  form.value.tempVerificationId = verificationId
+  // 暫存，發布成功後會用真實的 surveyId 替換
+  form.value.tempSurveyId = tempSurveyId
 }
 
 // 複製連結功能已移至 CopyButton 組件
@@ -696,12 +698,11 @@ const publishSurvey = async () => {
     // 準備問卷資料
     const surveyData = {
       ...form.value,
-      tags: form.value.tags || [], // 直接使用已經是 ID 的標籤陣列
-      verificationId: form.value.tempVerificationId
+      tags: form.value.tags || [] // 直接使用已經是 ID 的標籤陣列
     }
     
     // 移除臨時欄位和可能的 undefined 值
-    delete surveyData.tempVerificationId
+    delete surveyData.tempSurveyId
     
     // 確保所有欄位都不是 undefined
     Object.keys(surveyData).forEach(key => {
@@ -716,6 +717,9 @@ const publishSurvey = async () => {
     const result = await surveyService.createSurvey(surveyData)
     
     console.log('問卷發布成功:', result)
+    
+    // 更新驗證連結為真實的 surveyId
+    verificationLink.value = responsesService.generateVerifyLink(result.surveyId)
     
     router.push(`/publish/${result.surveyId}/success`)
   } catch (error) {
@@ -750,7 +754,7 @@ onMounted(async () => {
 .publish-container {
   max-width: 600px;
   margin: 0 auto;
-  padding: 40px 24px;
+  padding: 20px 24px;
   min-height: 100vh;
   display: flex;
   flex-direction: column;

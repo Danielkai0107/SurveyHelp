@@ -27,7 +27,9 @@ import StartAnswer from './pages/StartAnswer.vue'
 import Verify from './pages/Verify.vue'
 import MyAnswers from './pages/MyAnswers.vue'
 import MySurveys from './pages/MySurveys.vue'
+import Profile from './pages/Profile.vue'
 import Publish from './pages/Publish.vue'
+import EditSurvey from './pages/EditSurvey.vue'
 import PublishSuccess from './pages/PublishSuccess.vue'
 import Auth from './pages/Auth.vue'
 import NotFound from './pages/NotFound.vue'
@@ -37,9 +39,11 @@ const routes = [
   { path: '/s/:id', component: SurveyDetail },
   { path: '/s/:id/start', component: StartAnswer },
   { path: '/verify', component: Verify },
+  { path: '/me/profile', component: Profile },
   { path: '/me/answers', component: MyAnswers },
   { path: '/me/surveys', component: MySurveys },
   { path: '/publish', component: Publish },
+  { path: '/publish/edit/:id', component: EditSurvey },
   { path: '/publish/:id/success', component: PublishSuccess },
   { path: '/auth', component: Auth },
   { path: '/:pathMatch(.*)*', component: NotFound },

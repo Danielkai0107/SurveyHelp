@@ -89,15 +89,52 @@
         
         <!-- 操作按鈕區 -->
         <div class="action-buttons">
-          <!-- 未登入用戶 -->
-          <BaseButton v-if="!user" variant="primary" size="default" to="/auth">
-            前往登入
-          </BaseButton>
+          <!-- 問卷擁有者控制 -->
+          <div v-if="isOwner" class="owner-controls">
+            <BaseButton 
+              variant="secondary" 
+              size="default" 
+              @click="editSurvey"
+            >
+              編輯問卷
+            </BaseButton>
+            <BaseButton 
+              variant="secondary" 
+              size="default" 
+              @click="copyVerifyLink"
+            >
+              複製驗證連結
+            </BaseButton>
+            <BaseButton 
+              variant="secondary" 
+              size="default" 
+              @click="toggleSurveyStatus"
+              :disabled="isUpdatingStatus"
+            >
+              {{ isUpdatingStatus ? '更新中...' : (s.isActive !== false ? '下架問卷' : '重新上架') }}
+            </BaseButton>
+            <BaseButton 
+              variant="secondary" 
+              size="default" 
+              @click="deleteSurvey"
+              style="color: #ef4444; border-color: #ef4444;"
+            >
+              刪除問卷
+            </BaseButton>
+          </div>
           
-          <!-- 已登入用戶 -->
-          <BaseButton v-else variant="primary" size="default" @click="startSurvey">
-            開始作答
-          </BaseButton>
+          <!-- 一般用戶 -->
+          <div v-else class="user-controls">
+            <!-- 未登入用戶 -->
+            <BaseButton v-if="!user" variant="primary" size="default" to="/auth">
+              前往登入
+            </BaseButton>
+            
+            <!-- 已登入用戶 -->
+            <BaseButton v-else variant="primary" size="default" @click="startSurvey">
+              開始作答
+            </BaseButton>
+          </div>
         </div>
 
       </div>
@@ -108,7 +145,7 @@
         <div class="progress-section">
           <div class="progress-header">
             <span class="progress-percentage">{{ Math.round(((s.filled || 0)/(s.targetCount || s.target || 1))*100) }}%</span>
-            <span class="progress-label">已完成 {{ Math.round(((s.filled || 0)/(s.targetCount || s.target || 1))*100) }}% 目標</span>
+            <span class="progress-label">完成率</span>
           </div>
           <el-progress 
             :percentage="Math.min(100, Math.round(((s.filled || 0)/(s.targetCount || s.target || 1))*100))" 
@@ -120,8 +157,8 @@
             <span>100%</span>
           </div>
           <div class="progress-stats">
-            <span>已填答 {{ s.filled || 0 }} 人</span>
-            <span>目標 {{ s.targetCount || s.target || 0 }} 人</span>
+            <span>已填答 <strong class="stat-number">{{ s.filled || 0 }}</strong> 人</span>
+            <span>目標 <strong class="stat-number">{{ s.targetCount || s.target || 0 }}</strong> 人</span>
           </div>
         </div>
         
@@ -136,7 +173,6 @@
           <div class="info-item">
             <span class="info-label">發布機構</span>
             <div class="assignee">
-              <span class="assignee-icon">🏢</span>
               <span class="assignee-name">{{ s.organization || s.org }}</span>
               <span class="assignee-role">{{ s.fieldLabel || s.field }}</span>
             </div>
@@ -144,38 +180,34 @@
           
           <div class="info-item">
             <span class="info-label">問卷狀態</span>
-            <span class="info-value status" :class="getStatusClass(s)">{{ getStatusText(s) }}</span>
-          </div>
-          
-          <div class="info-item">
-            <span class="info-label">完成率</span>
-            <span class="info-value">{{ Math.round(((s.filled || 0)/(s.targetCount || s.target || 1))*100) }}%</span>
-          </div>
-          
-          <div class="info-item">
-            <span class="info-label">參與統計</span>
-            <div class="participation-stats">
-              <div class="stat-item">
-                <span class="stat-number">{{ s.filled || 0 }}</span>
-                <span class="stat-label">已參與</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-number">{{ (s.targetCount || s.target || 0) - (s.filled || 0) }}</span>
-                <span class="stat-label">剩餘名額</span>
-              </div>
+            <div class="status-info">
+              <span class="info-value status" :class="getStatusClass(s)">{{ getStatusText(s) }}</span>
+              <span v-if="s.isActive === false" class="inactive-badge">已下架</span>
             </div>
           </div>
+          
         </div>
 
       </div>
     </div>
+
+    <!-- 開始作答彈窗 -->
+    <StartAnswerModal
+      :visible="showStartModal"
+      :target-survey="survey || {}"
+      @close="handleModalClose"
+      @confirm="handleStartConfirm"
+    />
   </div>
 </template>
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import BaseButton from '../components/BaseButton.vue'
+import StartAnswerModal from '../components/StartAnswerModal.vue'
 import { surveyService } from '../services/firebase.js'
+import { responsesService } from '../services/responses.js'
+import { matchesService } from '../services/matches.js'
 import { formatDate } from '../utils/dateFormatter.js'
 import { useAuth } from '../composables/useAuth.js'
 
@@ -189,6 +221,17 @@ const error = ref(null)
 
 // 認證狀態
 const { user } = useAuth()
+
+// 彈窗狀態
+const showStartModal = ref(false)
+
+// 狀態控制
+const isUpdatingStatus = ref(false)
+
+// 檢查是否為問卷擁有者
+const isOwner = computed(() => {
+  return user.value && survey.value && user.value.uid === survey.value.createdBy
+})
 
 // 返回功能
 const goBack = () => {
@@ -252,13 +295,120 @@ const reportSurvey = () => {
 
 // 開始作答功能
 const startSurvey = () => {
-  if (!survey.value || !survey.value.link) {
-    alert('問卷連結不存在')
+  if (!survey.value) {
+    alert('問卷資料不存在')
     return
   }
   
-  // 在新分頁開啟問卷連結
-  window.open(survey.value.link, '_blank', 'noopener,noreferrer')
+  // 顯示選擇彈窗
+  showStartModal.value = true
+}
+
+// 處理彈窗確認
+const handleStartConfirm = async (selection) => {
+  try {
+    const surveyId = survey.value.id
+    console.log('開始互填流程:', { surveyId, selection })
+    
+    // 1. 創建互填配對
+    const match = await matchesService.createMatch(
+      surveyId, 
+      selection.selectedSurvey?.id || null
+    )
+    
+    // 2. 創建待驗證回應記錄
+    const response = await responsesService.createPendingResponse(surveyId)
+    
+    // 3. 更新配對的 response ID
+    await matchesService.updateMatchResponseId(match.matchId, response.responseId, true)
+    
+    console.log('互填配對創建完成:', { match, response })
+    
+    // 4. 關閉彈窗並開啟外部問卷
+    showStartModal.value = false
+    
+    if (survey.value.link) {
+      window.open(survey.value.link, '_blank', 'noopener,noreferrer')
+    } else {
+      alert('問卷連結不存在')
+    }
+    
+  } catch (error) {
+    console.error('開始作答失敗:', error)
+    alert('開始作答失敗，請稍後再試')
+  }
+}
+
+// 關閉彈窗
+const handleModalClose = () => {
+  showStartModal.value = false
+}
+
+// 切換問卷狀態（上下架）
+const toggleSurveyStatus = async () => {
+  if (!survey.value) return
+  
+  try {
+    isUpdatingStatus.value = true
+    const newStatus = survey.value.isActive !== false ? false : true
+    
+    await surveyService.updateSurvey(survey.value.id, {
+      isActive: newStatus
+    })
+    
+    // 更新本地狀態
+    survey.value.isActive = newStatus
+    
+    console.log('問卷狀態已更新:', { surveyId: survey.value.id, isActive: newStatus })
+    alert(newStatus ? '問卷已重新上架' : '問卷已下架')
+    
+  } catch (error) {
+    console.error('更新問卷狀態失敗:', error)
+    alert('操作失敗，請稍後再試')
+  } finally {
+    isUpdatingStatus.value = false
+  }
+}
+
+// 編輯問卷
+const editSurvey = () => {
+  if (!survey.value) return
+  router.push(`/publish/edit/${survey.value.id}`)
+}
+
+// 刪除問卷
+const deleteSurvey = async () => {
+  if (!survey.value) return
+  
+  const confirmed = confirm(`確定要刪除問卷「${survey.value.title}」嗎？此操作無法復原。`)
+  
+  if (!confirmed) return
+  
+  try {
+    await surveyService.deleteSurvey(survey.value.id)
+    
+    console.log('問卷已刪除:', survey.value.id)
+    alert('問卷已成功刪除')
+    
+    // 跳轉到我的問卷頁面
+    router.push('/me/surveys')
+    
+  } catch (error) {
+    console.error('刪除問卷失敗:', error)
+    alert('刪除失敗，請稍後再試')
+  }
+}
+
+// 複製驗證連結
+const copyVerifyLink = () => {
+  if (!survey.value) return
+  
+  const link = responsesService.generateVerifyLink(survey.value.id)
+  navigator.clipboard.writeText(link).then(() => {
+    alert('驗證連結已複製到剪貼板')
+  }).catch(() => {
+    alert('複製失敗，請手動複製')
+  })
 }
 // 載入問卷資料
 const loadSurvey = async () => {
@@ -496,6 +646,28 @@ const s = computed(() => survey.value || {})
   text-decoration: none;
 }
 
+.owner-controls,
+.user-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.status-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inactive-badge {
+  font-size: 11px;
+  background: #fee2e2;
+  color: #dc2626;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
 /* 進度統計 */
 .progress-stats {
   display: flex;
@@ -503,6 +675,11 @@ const s = computed(() => survey.value || {})
   margin-top: 8px;
   font-size: 12px;
   color: var(--muted);
+}
+
+.progress-stats .stat-number {
+  font-weight: 600;
+  color: var(--primary);
 }
 
 /* 右側信息區 */

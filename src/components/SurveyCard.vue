@@ -1,32 +1,57 @@
 <template>
   <div :class="['survey-item', viewMode]" @click="goToDetail">
-    <div class="survey-meta">
-      <span class="survey-category">{{ displayField }}</span>
-      <span class="survey-date">{{ formattedDate }}</span>
-    </div>
-    <!-- 標題和標籤區 -->
-    <div class="title-tags-row">
-      <h2 class="survey-title">{{ survey.title }}</h2>
-      <!-- 標籤區 -->
-      <div class="survey-tags" v-if="displayTags.length > 0">
-        <span v-for="tag in displayTags" :key="tag" class="tag">{{ tag }}</span>
-        <span v-if="remainingTagsCount > 0" class="tag tag-more">+{{ remainingTagsCount }}</span>
+    <div class="survey-item-container">
+      <!-- 左側內容 -->
+      <div class="survey-content">
+        <div class="survey-header">
+          <div class="survey-category">{{ displayField }}</div>
+          <div class="survey-date">{{ formattedDate }}</div>
+        </div>
+        
+        <h3 class="survey-title">{{ survey.title }}</h3>
+        
+        <div class="survey-info">
+          <div class="info-item">
+            <span class="info-label">發布機構：</span>
+            <span class="info-value">{{ displayOrganization }}</span>
+          </div>
+          
+          <div class="info-item">
+            <span class="info-label">時間：</span>
+            <span class="info-value">{{ survey.minutes }} 分鐘</span>
+          </div>
+          
+          <div class="info-item">
+            <span class="info-label">獎勵：</span>
+            <span class="info-value">+{{ survey.incentive }} 積分</span>
+          </div>
+        </div>
       </div>
-    </div>
-    <p class="survey-org">{{ displayOrganization }}</p>
-    <p class="survey-description">{{ survey.description }}</p>
-    
-    <!-- 進度條區 -->
-    <div class="survey-progress" v-if="survey.filled !== undefined && displayTarget">
-      <div class="progress-info">
-        <span class="progress-text">填答進度</span>
-        <span class="progress-stats">{{ survey.filled }}/{{ displayTarget }}</span>
+
+      <!-- 右側狀態和進度 -->
+      <div class="survey-status-info">
+        <!-- 標籤 -->
+        <div v-if="displayTags.length > 0" class="tags-section">
+          <span v-for="tag in displayTags" :key="tag" class="tag-badge">
+            {{ tag }}
+          </span>
+          <span v-if="remainingTagsCount > 0" class="tag-badge more">
+            +{{ remainingTagsCount }}
+          </span>
+        </div>
+        
+        <!-- 進度條 -->
+        <div v-if="survey.filled !== undefined && displayTarget" class="progress-info">
+          <div class="progress-text">{{ survey.filled }}/{{ displayTarget }} 人</div>
+          <div class="progress-bar">
+            <div 
+              class="progress-fill" 
+              :style="{ width: Math.min(100, Math.round((survey.filled/displayTarget)*100)) + '%' }"
+            ></div>
+          </div>
+          <div class="progress-percentage">{{ Math.round((survey.filled/displayTarget)*100) }}%</div>
+        </div>
       </div>
-      <el-progress 
-        :percentage="Math.min(100, Math.round((survey.filled/displayTarget)*100))" 
-        :show-text="false"
-        :stroke-width="6"
-      />
     </div>
   </div>
 </template>
@@ -74,6 +99,7 @@ const displayTarget = computed(() => {
   return props.survey.targetCount || props.survey.target || 0
 })
 
+
 // 點擊處理
 const goToDetail = () => {
   router.push(`/s/${props.survey.id}`)
@@ -81,42 +107,44 @@ const goToDetail = () => {
 </script>
 
 <style scoped>
-/* 條列檢視樣式 */
-.survey-item.list {
+/* 列表項目樣式 */
+.survey-item {
+  display: flex;
+  align-items: flex-end;
+  flex-direction: column;
   padding: 32px 0;
   border-bottom: 1px solid var(--border);
   cursor: pointer;
   transition: all 0.2s ease;
+  gap: 12px;
 }
 
-.survey-item.list:hover .title-tags-row .survey-title {
+.survey-item:hover .survey-title {
   transform: scale(1.1);
 }
 
-.survey-item.list:last-child {
+.survey-item:last-child {
   border-bottom: none;
 }
 
-/* 圖卡檢視樣式 */
-.survey-item.grid {
-  padding: 24px;
-  border-radius: 32px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  background: white;
-  border: 1px solid transparent;
-
+.survey-item-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
 }
 
-.survey-item.grid:hover {
-  border-color: #d1d5db;
+/* 左側內容 */
+.survey-content {
+  flex: 1;
+  min-width: 0;
 }
 
-.survey-meta {
+.survey-header {
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .survey-category {
@@ -130,97 +158,128 @@ const goToDetail = () => {
   color: var(--muted);
 }
 
-/* 標題和標籤行 */
-.title-tags-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
-  margin-bottom: 6px;
-}
-
 .survey-title {
   font-size: 20px;
   font-weight: 600;
-  margin: 0;
-  line-height: 1.3;
   color: var(--text);
+  margin: 0 0 12px 0;
+  line-height: 1.3;
   transition: transform 0.2s ease;
-  flex: 1;
   transform-origin: left center;
 }
 
-.survey-org {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--muted);
-  margin: 0 0 8px 0;
-}
-
-.survey-description {
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--muted);
-  margin: 0 0 12px 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.survey-tags {
+.survey-info {
   display: flex;
+  gap: 24px;
+  margin-bottom: 12px;
   flex-wrap: wrap;
-  gap: 8px;
-  flex-shrink: 0;
 }
 
-.tag {
-  display: inline-block;
-  font-size: 12px;
-  background: #f7fafc;
-  border: 1px solid var(--border);
-  padding: 4px 12px;
-  border-radius: 20px;
+.info-item {
+  display: flex;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.info-label {
+  color: var(--muted);
+}
+
+.info-value {
   color: var(--text);
   font-weight: 500;
 }
 
-.tag-more {
-  opacity: 0.7;
+/* 標籤區域 */
+.tags-section {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
-.survey-progress {
-  margin-top: 16px;
+.tag-badge {
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  background: #f3f4f6;
+  color: var(--text);
+  font-weight: 500;
 }
 
+.tag-badge.more {
+  background: #e5e7eb;
+  color: var(--muted);
+}
+
+/* 右側狀態資訊 */
+.survey-status-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+  flex-shrink: 0;
+  min-width: 200px;
+}
+
+
+/* 進度資訊 */
 .progress-info {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  width: 120px;
 }
 
 .progress-text {
   font-size: 12px;
-  font-weight: 500;
-  color: var(--text);
+  color: var(--muted);
 }
 
-.progress-stats {
-  font-size: 12px;
+.progress-bar {
+  width: 100%;
+  height: 4px;
+  background: #f1f5f9;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #22c55e;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.progress-percentage {
+  font-size: 11px;
   color: var(--muted);
 }
 
 /* 響應式設計 */
 @media (max-width: 768px) {
-  .title-tags-row {
+  .survey-item {
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
+    gap: 16px;
+    padding: 24px 0;
   }
   
-  .survey-title {
-    margin-bottom: 0;
+  .survey-status-info {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    min-width: auto;
+  }
+  
+  .progress-info {
+    align-items: flex-start;
+  }
+  
+  .survey-info {
+    flex-direction: column;
+    gap: 8px;
   }
 }
 </style>

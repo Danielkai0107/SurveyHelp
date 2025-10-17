@@ -20,10 +20,10 @@
       <div class="top-bar-right">
         <div v-if="isLoading" class="auth-loading">載入中...</div>
         <div v-else-if="user" class="user-menu">
-          <div class="user-info">
+          <router-link to="/me/profile" class="user-info" @click="handleNavClick">
             <img v-if="user.photoURL" :src="user.photoURL" :alt="user.displayName" class="user-avatar">
             <span class="user-name">{{ user.displayName || user.email }}</span>
-          </div>
+          </router-link>
           <button @click="handleLogout" class="logout-btn">登出</button>
         </div>
         <router-link v-else to="/auth" class="auth-btn">
@@ -68,12 +68,12 @@
           <div class="nav-section-title">我的</div>
           <router-link to="/me/answers" class="nav-item" @click="handleNavClick">
             <span class="material-symbols-rounded nav-icon">assignment</span>
-            <span class="nav-text">我的填答</span>
+            <span class="nav-text">回填管理</span>
             <span class="nav-arrow">›</span>
           </router-link>
           <router-link to="/me/surveys" class="nav-item" @click="handleNavClick">
             <span class="material-symbols-rounded nav-icon">poll</span>
-            <span class="nav-text">我發布的</span>
+            <span class="nav-text">我的問卷</span>
             <span class="nav-arrow">›</span>
           </router-link>
         </div>
@@ -279,6 +279,15 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
+  text-decoration: none;
+  color: inherit;
+  padding: 4px 8px;
+  border-radius: 20px;
+  transition: all 0.2s ease;
+}
+
+.user-info:hover {
+  background: var(--hover);
 }
 
 .user-avatar {

@@ -43,8 +43,23 @@
         </div>
         </div>
       </div>
+       <!-- 主要標籤區域 -->
+    <div class="main-tabs-section">
+      <div class="main-tabs">
+        <button 
+          v-for="tab in mainTabs" 
+          :key="tab.id"
+          :class="['tab-btn', { active: activeMainTab === tab.id }]"
+          @click="setActiveMainTab(tab.id)"
+        >
+          {{ tab.label }}
+        </button>
+      </div>
+    </div>
 
     </div>
+
+   
 
     <!-- 內容區域 -->
     <div class="content-area">
@@ -92,10 +107,8 @@ import { surveyService } from '../services/firebase.js'
 // 主要標籤
 const mainTabs = ref([
   { id: 'all', label: '全部' },
-  { id: 'research', label: '公開發表' },
-  { id: 'results', label: '結論' },
-  { id: 'milestones', label: '里程碑' },
-  { id: 'announcements', label: '發行通知' }
+  { id: 'earn-points', label: '賺積分' },
+  { id: 'mutual', label: '互惠專區' }
 ])
 
 const activeMainTab = ref('all')
@@ -121,22 +134,20 @@ const loadMoreIncrement = 5 // 每次加載5個
 // 問卷資料（從 Firestore 載入）
 const allContent = ref([])
 
-// 篩選後的內容（現在直接使用 allContent，因為篩選在 Firestore 層面完成）
+// 篩選後的內容
 const filteredContent = computed(() => {
   let content = allContent.value
 
-  // 主要標籤篩選（如果需要的話）
+  // 主要標籤篩選
   if (activeMainTab.value !== 'all') {
     content = content.filter(item => {
       switch (activeMainTab.value) {
-        case 'research':
-          return item.category === '公開發表'
-        case 'results':
-          return item.category === '結論'
-        case 'milestones':
-          return item.category === '里程碑'
-        case 'announcements':
-          return item.category === '發行通知'
+        case 'earn-points':
+          // 賺積分：顯示高積分獎勵的問卷（≥10積分）
+          return (item.incentive || 0) >= 10
+        case 'mutual':
+          // 互惠專區：顯示適合互填的問卷（可以根據需要調整條件）
+          return (item.incentive || 0) >= 8 && (item.filled || 0) < (item.targetCount || item.target || 1) * 0.8
         default:
           return true
       }
@@ -243,6 +254,38 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+/* 主要標籤區域 */
+.main-tabs-section {
+  margin-top: 24px;
+}
+
+.main-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.main-tabs .tab-btn {
+  padding: 12px 20px;
+  background: none;
+  border: none;
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.main-tabs .tab-btn:hover {
+  color: var(--text);
+}
+
+.main-tabs .tab-btn.active {
+  color: var(--text);
+  border-bottom-color: var(--text);
 }
 
 

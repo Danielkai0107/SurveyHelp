@@ -3,18 +3,9 @@
     <div class="page-wrapper">
     <div class="success-container">
       <h2 class="title">發布成功 🎉</h2>
-      <p class="description">確認以下「回填驗證連結」已經貼到外部問卷的最後一頁</p>
-      <div class="link-container">
-        <BaseInput
-          :model-value="link"
-          placeholder=""
-          readonly
-          style="flex: 1; font-family: monospace; font-size: 13px;"
-        />
-        <CopyButton :text="link" />
-      </div>
-      <p class="description">建議同時在外部問卷最後一題附上「返回平台完成驗證」超連結。</p>
-      <p class="description">發布後請自行測試一次完整流程。</p>
+      <p class="description">您的問卷已成功發布到平台</p>
+      <p class="description">驗證連結已在發布流程中提供，請確認已添加到外部問卷</p>
+      <p class="description">建議自行測試一次完整流程確保驗證連結正常運作</p>
     
       <div class="button-group">
         <BaseButton variant="primary" size="default" to="/me/surveys">前往「我發布的」</BaseButton>
@@ -25,14 +16,8 @@
   </AuthGuard>
 </template>
 <script setup>
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
 import BaseButton from '../components/BaseButton.vue'
-import BaseInput from '../components/BaseInput.vue'
-import CopyButton from '../components/CopyButton.vue'
 import AuthGuard from '../components/AuthGuard.vue'
-const route = useRoute()
-const link = computed(()=> `https://app.example.com/verify?surveyId=${route.params.id}`)
 </script>
 
 <style scoped>
@@ -63,12 +48,6 @@ const link = computed(()=> `https://app.example.com/verify?surveyId=${route.para
   line-height: 1.3;
 }
 
-.link-container {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  margin: 24px 0;
-}
 
 .description{
   font-size: 14px;
@@ -106,10 +85,6 @@ const link = computed(()=> `https://app.example.com/verify?surveyId=${route.para
     margin: 16px 0;
   }
   
-  .link-container {
-    flex-direction: column;
-    gap: 12px;
-  }
   
   .button-group {
     flex-direction: column;
