@@ -263,10 +263,17 @@ const checkUserMatch = async () => {
   
   try {
     const matches = await matchesService.getUserMatches(user.value.uid)
-    const match = matches.find(m => 
-      (m.role === 'requester' && m.ownerSurveyId === survey.value.id) ||
-      (m.role === 'counterpart' && m.selectedMySurveyId === survey.value.id)
-    )
+    const match = matches.find(m => {
+      // requester 角色：我主動要填別人的問卷（ownerSurveyId）
+      if (m.role === 'requester' && m.ownerSurveyId === survey.value.id) {
+        return true
+      }
+      // counterpart 角色：對方選給我填的問卷（selectedMySurveyId）
+      if (m.role === 'counterpart' && m.selectedMySurveyId === survey.value.id) {
+        return true
+      }
+      return false
+    })
     
     if (match) {
       userMatch.value = match

@@ -21,11 +21,17 @@ service cloud.firestore {
     
     // 問卷集合
     match /surveys/{surveyId} {
-      // 所有人都可以讀取已發布的問卷
-      allow read: if request.auth != null;
-      // 只有擁有者可以寫入自己的問卷
+      // 所有人都可以讀取已發布的問卷（包括未登入用戶）
+      allow read: if true;
+      // 只有登入用戶可以創建問卷
       allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.createdBy;
+      // 擁有者可以完全更新或刪除自己的問卷
+      allow delete: if request.auth != null && request.auth.uid == resource.data.createdBy;
+      // 擁有者可以完全更新
+      allow update: if request.auth != null && request.auth.uid == resource.data.createdBy;
+      // 任何登入用戶可以更新 filled 欄位（填答計數）
+      allow update: if request.auth != null && 
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['filled', 'updatedAt']);
     }
     
     // 回應記錄集合

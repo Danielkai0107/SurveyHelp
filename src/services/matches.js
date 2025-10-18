@@ -88,6 +88,8 @@ export const matchesService = {
   // 標記配對完成
   async markMatchCompleted(matchId, completedBy) {
     try {
+      console.log('📝 開始標記配對完成:', { matchId, completedBy });
+      
       const docRef = doc(db, 'matches', matchId);
       const docSnap = await getDoc(docRef);
       
@@ -98,6 +100,16 @@ export const matchesService = {
       const matchData = docSnap.data();
       const isRequester = completedBy === matchData.requesterUid;
       
+      console.log('🔍 配對資料:', {
+        matchId,
+        requesterUid: matchData.requesterUid,
+        counterpartUid: matchData.counterpartUid,
+        completedBy,
+        isRequester,
+        requesterDone: matchData.requesterDone,
+        counterpartDone: matchData.counterpartDone
+      });
+      
       // 檢查是否雙方都完成
       const otherDone = isRequester ? matchData.counterpartDone : matchData.requesterDone;
       
@@ -106,36 +118,39 @@ export const matchesService = {
         [isRequester ? 'requesterDone' : 'counterpartDone']: true
       };
       
+      console.log('✏️ 準備更新配對狀態:', updateData);
+      
       if (otherDone) {
-        // 雙方都完成，給予互惠加成
+        // 雙方都完成，關閉配對
         updateData.status = 'closed';
         
-        // 計算積分：對方已經有基本積分10，現在加上互惠加成
-        // 當前用戶設置為基本積分10 + 互惠加成
+        // 記錄積分（用於顯示）
         if (isRequester) {
-          updateData.requesterPoints = 10 + matchData.mutualBonus;
-          updateData.counterpartPoints = (matchData.counterpartPoints || 10) + matchData.mutualBonus;
+          updateData.requesterPoints = 3 + matchData.mutualBonus;
+          updateData.counterpartPoints = (matchData.counterpartPoints || 3) + matchData.mutualBonus;
         } else {
-          updateData.counterpartPoints = 10 + matchData.mutualBonus;
-          updateData.requesterPoints = (matchData.requesterPoints || 10) + matchData.mutualBonus;
+          updateData.counterpartPoints = 3 + matchData.mutualBonus;
+          updateData.requesterPoints = (matchData.requesterPoints || 3) + matchData.mutualBonus;
         }
         
-        console.log('互填配對完成，雙方獲得互惠加成:', {
-          requesterPoints: updateData.requesterPoints,
-          counterpartPoints: updateData.counterpartPoints
-        });
+        console.log('✅ 互填配對完成，雙方都已完成，配對狀態：closed');
       } else {
-        // 第一個完成的人，只給基本積分
-        updateData[`${isRequester ? 'requester' : 'counterpart'}Points`] = 10;
+        // 第一個完成的人，只記錄基本積分
+        updateData[`${isRequester ? 'requester' : 'counterpart'}Points`] = 3;
+        console.log('ℹ️ 第一個完成，等待對方完成');
       }
 
       await updateDoc(docRef, updateData);
+      console.log('✅ 配對狀態已更新到 Firestore');
       
-      return {
+      const result = {
         matchCompleted: otherDone,
         mutualBonus: otherDone ? matchData.mutualBonus : 0,
         totalPoints: updateData[`${isRequester ? 'requester' : 'counterpart'}Points`]
       };
+      
+      console.log('📊 返回結果:', result);
+      return result;
     } catch (error) {
       console.error('標記配對完成失敗:', error);
       throw error;

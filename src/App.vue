@@ -155,6 +155,8 @@ const handleLogout = async () => {
   try {
     await logout()
     console.log('登出成功')
+    // 登出後重新整理並跳轉到首頁
+    window.location.href = '/'
   } catch (error) {
     console.error('登出失敗:', error)
   }
@@ -191,9 +193,16 @@ const closeSidebar = () => {
 }
 
 // 處理導航點擊
-const handleNavClick = () => {
+const handleNavClick = (event) => {
   if (isMobile.value) {
     closeSidebar()
+  }
+  // 如果點擊的是探索問卷連結，且當前已在首頁，則重新整理
+  const target = event.currentTarget || event.target
+  const href = target.getAttribute('href') || target.closest('a')?.getAttribute('href')
+  if (href === '/' && window.location.pathname === '/') {
+    event.preventDefault()
+    window.location.reload()
   }
 }
 

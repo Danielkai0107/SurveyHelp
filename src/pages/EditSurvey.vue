@@ -143,15 +143,6 @@
                 :error="errors.targetCount"
               />
 
-              <BaseSelect
-                v-model.number="form.incentive"
-                label="獎勵積分"
-                help-text="完成問卷後給予的積分獎勵"
-              >
-                <option :value="3">3 積分</option>
-                <option :value="5">5 積分</option>
-                <option :value="10">10 積分</option>
-              </BaseSelect>
             </div>
 
             <BaseInput
@@ -247,7 +238,7 @@ const form = ref({
   tags: [],
   minutes: 6,
   targetCount: 100,
-  incentive: 10,
+  incentive: 3,
   link: ''
 })
 
@@ -291,7 +282,7 @@ const loadSurveyData = async () => {
       tags: survey.tags || [],
       minutes: survey.minutes || 6,
       targetCount: survey.targetCount || 100,
-      incentive: survey.incentive || 10,
+      incentive: survey.incentive || 3,
       link: survey.link || ''
     }
     

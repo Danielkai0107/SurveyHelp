@@ -197,27 +197,15 @@
             <div class="help-text">選擇您希望參與此問卷的目標受眾特徵</div>
           </div>
 
-          <div class="form-row">
-            <BaseInput
-              v-model.number="form.targetCount"
-              type="number"
-              label="目標人數"
-              placeholder="100"
-              :min="10"
-              required
-              :error="errors.targetCount"
-            />
-
-            <BaseSelect
-              v-model.number="form.incentive"
-              label="獎勵積分"
-              help-text="完成問卷後給予的積分獎勵"
-            >
-              <option :value="3">3 積分</option>
-              <option :value="5">5 積分</option>
-              <option :value="10">10 積分</option>
-            </BaseSelect>
-          </div>
+          <BaseInput
+            v-model.number="form.targetCount"
+            type="number"
+            label="目標人數"
+            placeholder="100"
+            :min="10"
+            required
+            :error="errors.targetCount"
+          />
 
           <BaseInput
             v-model="form.link"
@@ -270,7 +258,7 @@
                 </div>
                 <div class="detail-item">
                   <span class="detail-label">獎勵：</span>
-                  <span class="detail-value">+{{ form.incentive || 0 }} 積分</span>
+                  <span class="detail-value">+3 積分</span>
                 </div>
                 <div class="detail-item">
                   <span class="detail-label">目標人數：</span>
@@ -404,7 +392,7 @@ const form = ref({
   targetGender: '',
   minutes: 6,
   targetCount: 100,
-  incentive: 10,
+  incentive: 3,
   link: '',
   description: '',
   organizationType: 'individual',

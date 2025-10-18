@@ -1,6 +1,7 @@
 import { matchesService } from './matches.js'
 import { pointsService } from './points.js'
-import { auth } from '../firebase.js'
+import { auth, db } from '../firebase.js'
+import { doc, updateDoc } from 'firebase/firestore'
 
 // 過期檢查服務
 export const expireCheckService = {
@@ -66,12 +67,32 @@ export const expireCheckService = {
         if (now > expireDate) {
           expiredCount++
           
+          // 更新配對狀態為已過期
+          try {
+            const matchRef = doc(db, 'matches', match.id)
+            await updateDoc(matchRef, {
+              status: 'closed_expired'
+            })
+          } catch (error) {
+            console.error('更新配對狀態失敗:', error)
+          }
+          
           // 檢查用戶是否完成
           const isDone = match.role === 'requester' ? match.requesterDone : match.counterpartDone
           
-          // 如果未完成，扣除積分
+          // 如果未完成，扣除積分並更新 response 狀態
           if (!isDone) {
             penaltyCount++
+            
+            // 更新相關的 response 為過期狀態
+            try {
+              const responseId = match.role === 'requester' ? match.requesterResponseId : match.counterpartResponseId
+              if (responseId) {
+                await matchesService.expireResponse(responseId)
+              }
+            } catch (error) {
+              console.error('更新 response 狀態失敗:', error)
+            }
             
             // 獲取問卷資訊
             let surveyTitle = '未知問卷'
@@ -88,11 +109,11 @@ export const expireCheckService = {
               console.error('獲取問卷資訊失敗:', error)
             }
             
-            // 扣除 5 積分
+            // 扣除 2 積分
             try {
               await pointsService.addPointsRecord(
                 currentUser.uid,
-                -5,
+                -2,
                 'penalty',
                 `未在期限內完成問卷：${surveyTitle}`,
                 match.id
@@ -114,9 +135,6 @@ export const expireCheckService = {
       } else {
         console.log('✅ 過期檢查完成：無過期配對')
       }
-      
-      // 調用 matches 服務的過期處理（更新配對狀態和 responses）
-      await matchesService.expireMatches()
       
     } catch (error) {
       console.error('❌ 檢查過期配對失敗:', error)

@@ -86,7 +86,7 @@ export async function addTestPoints() {
     // 5. 逾期扣分（負數）
     await pointsService.addPointsRecord(
       currentUser.uid,
-      -5,
+      -2,
       'penalty',
       '未在期限內完成問卷',
       'match_test_expired'

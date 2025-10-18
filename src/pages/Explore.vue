@@ -65,6 +65,7 @@
     <div class="content-area">
       <!-- 載入狀態 -->
       <div v-if="isLoading" class="loading-container">
+        <div class="loading-spinner"></div>
         <div class="loading-text">載入中...</div>
       </div>
       
@@ -98,7 +99,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import SurveyCard from '../components/SurveyCard.vue'
 import BaseSelect from '../components/BaseSelect.vue'
 import { useOptions } from '../composables/useOptions.js'
@@ -158,8 +159,8 @@ const filteredContent = computed(() => {
     content = content.filter(item => {
       switch (activeMainTab.value) {
         case 'earn-points':
-          // 賺積分：顯示高積分獎勵的問卷（≥10積分）
-          return (item.incentive || 0) >= 10
+          // 賺積分：顯示高積分獎勵的問卷（≥3積分）
+          return (item.incentive || 0) >= 3
         case 'mutual':
           // 互惠專區：顯示適合互填的問卷（可以根據需要調整條件）
           return (item.incentive || 0) >= 8 && (item.filled || 0) < (item.targetCount || item.target || 1) * 0.8
@@ -212,6 +213,15 @@ const loadMore = () => {
 // 載入問卷資料
 const isLoading = ref(false)
 
+// 監聽用戶登入狀態變化
+watch(user, async (newUser, oldUser) => {
+  // 當用戶從未登入變為登入，或從登入變為未登入時
+  if (newUser?.uid !== oldUser?.uid) {
+    console.log('用戶狀態變化，重新載入已完成問卷列表')
+    await loadCompletedSurveys()
+  }
+})
+
 // 載入用戶已完成的問卷
 const loadCompletedSurveys = async () => {
   if (!user.value) {
@@ -254,15 +264,35 @@ const loadSurveys = async () => {
   }
 }
 
+// 監聽積分更新事件（驗證完成後觸發）
+const handlePointsUpdate = async () => {
+  console.log('Explore: 收到積分更新事件，重新載入已完成問卷列表')
+  await loadCompletedSurveys()
+}
+
 // 初始化
 onMounted(async () => {
   try {
-    await initOptions()
-    await loadCompletedSurveys() // 先載入已完成的問卷列表
-    await loadSurveys()
+    // 先載入問卷（不管用戶是否登入）
+    await Promise.all([
+      initOptions(),
+      loadSurveys()
+    ])
+    // 如果用戶已登入，再載入已完成的問卷列表
+    if (user.value) {
+      await loadCompletedSurveys()
+    }
+    
+    // 監聽積分更新事件
+    window.addEventListener('points-updated', handlePointsUpdate)
   } catch (error) {
     console.error('初始化失敗:', error)
   }
+})
+
+// 清理
+onUnmounted(() => {
+  window.removeEventListener('points-updated', handlePointsUpdate)
 })
 </script>
 
@@ -435,9 +465,25 @@ onMounted(async () => {
 /* 載入狀態 */
 .loading-container {
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   min-height: 400px;
+  gap: 16px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #000000;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .loading-text {

@@ -67,6 +67,21 @@ export const pointsService = {
       // 0. 確保用戶檔案存在
       await this.getUserProfile(userId);
 
+      // 如果是扣分，檢查是否會導致負數
+      if (points < 0) {
+        const currentPoints = await this.getUserTotalPoints(userId);
+        // 如果扣分後會變成負數，只扣到 0 為止
+        if (currentPoints + points < 0) {
+          const actualDeduction = -currentPoints; // 只扣除到剩餘的積分
+          if (actualDeduction === 0) {
+            console.log('用戶積分已為 0，無法再扣分');
+            return null; // 積分已經是 0，不執行扣分
+          }
+          points = actualDeduction; // 調整扣分數量
+          console.log(`積分不足，調整扣分：原本 ${points}，實際 ${actualDeduction}`);
+        }
+      }
+
       // 1. 創建積分記錄
       const recordData = {
         userId,

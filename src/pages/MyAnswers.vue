@@ -76,8 +76,19 @@ const loadMatches = async () => {
     // 為每個配對載入詳細資訊
     const enrichedMatches = await Promise.all(
       matches.map(async (match) => {
-        // 載入目標問卷資訊（對方要我填的問卷）
-        const targetSurveyId = match.role === 'requester' ? match.ownerSurveyId : match.selectedMySurveyId
+        // 載入目標問卷資訊（我要填的問卷）
+        // requester: 我要填 ownerSurveyId（別人發布的問卷）
+        // counterpart: 我要填 selectedMySurveyId（對方選給我填的問卷）
+        const targetSurveyId = match.role === 'requester' 
+          ? match.ownerSurveyId 
+          : match.selectedMySurveyId
+        
+        // 如果 counterpart 但沒有 selectedMySurveyId，表示對方沒選問卷給我填，跳過
+        if (match.role === 'counterpart' && !targetSurveyId) {
+          console.log(`配對 ${match.id} 對方沒有選擇問卷給我填，跳過`)
+          return null
+        }
+        
         const targetSurvey = await surveyService.getSurveyWithLabels(targetSurveyId, { returnNullOnError: true })
         
         // 如果問卷不存在（已被刪除），返回 null
@@ -86,18 +97,32 @@ const loadMatches = async () => {
           return null
         }
         
-        // 載入我的問卷資訊（對方要填的我的問卷，如果有選擇）
+        // 載入我的問卷資訊（對方要填的我的問卷）
+        // requester: 我的問卷是 selectedMySurveyId（我選給對方填的）
+        // counterpart: 我的問卷是 ownerSurveyId（我發布的，對方要填的）
         let mySurvey = null
-        if (match.selectedMySurveyId && match.role === 'requester') {
-          mySurvey = await surveyService.getSurveyWithLabels(match.selectedMySurveyId, { returnNullOnError: true })
-        } else if (match.ownerSurveyId && match.role === 'counterpart') {
-          mySurvey = await surveyService.getSurveyWithLabels(match.ownerSurveyId, { returnNullOnError: true })
+        const mySurveyId = match.role === 'requester' 
+          ? match.selectedMySurveyId 
+          : match.ownerSurveyId
+        
+        if (mySurveyId) {
+          mySurvey = await surveyService.getSurveyWithLabels(mySurveyId, { returnNullOnError: true })
         }
-        // 注意：即使 mySurvey 是 null（我的問卷被刪除），配對仍然有效，因為重要的是 targetSurvey
+        // 注意：即使 mySurvey 是 null（我的問卷被刪除或沒選擇），配對仍然有效，因為重要的是 targetSurvey
         
         // 計算狀態
         const status = getMatchStatus(match)
         const timeRemaining = matchesService.calculateTimeRemaining(match.expireAt)
+        
+        // 調試信息：顯示 match 的關鍵狀態
+        console.log(`配對 ${match.id} 狀態:`, {
+          role: match.role,
+          requesterDone: match.requesterDone,
+          counterpartDone: match.counterpartDone,
+          requesterResponseId: match.requesterResponseId,
+          counterpartResponseId: match.counterpartResponseId,
+          calculatedStatus: status.status
+        })
         
         return {
           ...match,
@@ -138,8 +163,10 @@ const getMatchStatus = (match) => {
   if (match.role === 'requester') {
     if (match.requesterDone) {
       return { status: 'done', text: '已完成' }
-    } else {
+    } else if (match.requesterResponseId) {
       return { status: 'doing', text: '進行中' }
+    } else {
+      return { status: 'pending', text: '未開始' }
     }
   } else {
     // counterpart
@@ -161,7 +188,7 @@ const calculatePoints = (match) => {
   
   return {
     earned: points || 0,
-    potential: isDone ? 0 : 10,
+    potential: isDone ? 0 : 3,  // 改為 3 分
     mutualBonus: (match.status === 'closed' && isDone) ? match.mutualBonus : 0,
     pendingMutual: (match.status === 'open' && isDone) ? match.mutualBonus : 0
   }
@@ -207,6 +234,8 @@ const reopenSurvey = (match) => {
 // 監聽積分更新事件（驗證完成後觸發）
 const handlePointsUpdate = async () => {
   console.log('MyAnswers: 收到積分更新事件，重新載入配對數據')
+  // 添加小延遲確保 Firestore 數據已同步
+  await new Promise(resolve => setTimeout(resolve, 500))
   await loadMatches()
 }
 

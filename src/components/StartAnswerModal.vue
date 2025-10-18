@@ -18,7 +18,7 @@
         <div class="points-info">
           <div class="points-item">
             <span class="points-label">此次填答可獲得：</span>
-            <span class="points-value">+{{ targetSurvey.incentive || 10 }} 積分</span>
+            <span class="points-value">+{{ targetSurvey.incentive || 3 }} 積分</span>
           </div>
           <div v-if="selectedSurvey" class="points-item">
             <span class="points-label">互惠完成可再獲得：</span>
@@ -35,7 +35,7 @@
         <div v-else-if="mySurveys.length > 0" class="surveys-list">
           <div class="list-header">
             <h4>選擇我的問卷（可選）：</h4>
-            <p class="list-subtitle">對方完成後可獲得 +10 積分</p>
+            <p class="list-subtitle">對方完成後可獲得 +3 積分</p>
           </div>
           
           <div class="survey-cards">
@@ -47,7 +47,7 @@
               <div class="card-content">
                 <h5 class="card-title">不選擇互填問卷</h5>
                 <p class="card-subtitle">僅獲得填答積分</p>
-                <div class="card-points">+{{ targetSurvey.incentive || 10 }} 積分</div>
+                <div class="card-points">+{{ targetSurvey.incentive || 3 }} 積分</div>
               </div>
             </div>
 
@@ -66,7 +66,7 @@
                 </div>
                 <div class="card-details">
                   <span class="card-time">{{ survey.minutes }}分鐘</span>
-                  <span class="card-incentive">對方完成可得 +{{ survey.incentive || 10 }}</span>
+                  <span class="card-incentive">對方完成可得 +{{ survey.incentive || 3 }}</span>
                 </div>
               </div>
             </div>
@@ -77,7 +77,7 @@
         <div v-else class="no-surveys">
           <div class="no-surveys-icon">📋</div>
           <h4 class="no-surveys-title">您還沒有發布的問卷</h4>
-          <p class="no-surveys-text">完成此次填答可獲得 +{{ targetSurvey.incentive || 10 }} 積分</p>
+          <p class="no-surveys-text">完成此次填答可獲得 +{{ targetSurvey.incentive || 3 }} 積分</p>
         </div>
       </div>
 
@@ -86,7 +86,7 @@
         <div class="total-points">
           <span class="total-label">預計可獲得：</span>
           <span class="total-value">
-            +{{ (targetSurvey.incentive || 10) + (selectedSurvey ? 2 : 0) }} 積分
+            +{{ (targetSurvey.incentive || 3) + (selectedSurvey ? 2 : 0) }} 積分
           </span>
         </div>
         
@@ -174,7 +174,7 @@ const confirmStart = () => {
   isStarting.value = true
   emit('confirm', {
     selectedSurvey: selectedSurvey.value,
-    expectedPoints: (props.targetSurvey.incentive || 10) + (selectedSurvey.value ? 2 : 0)
+    expectedPoints: (props.targetSurvey.incentive || 3) + (selectedSurvey.value ? 2 : 0)
   })
 }
 

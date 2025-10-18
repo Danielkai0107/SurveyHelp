@@ -124,7 +124,7 @@ export const responsesService = {
       // 更新回應狀態為已完成
       const responseDoc = pendingSnap.docs[0];
       const responseData = responseDoc.data();
-      const basePoints = surveyDoc.incentive || 10;
+      const basePoints = surveyDoc.incentive || 3;
       
       await updateDoc(responseDoc.ref, {
         status: 'completed',
@@ -164,30 +164,41 @@ export const responsesService = {
           surveyId
         );
         
-        // 處理互填配對（如果有）
-        if (responseData.matchId) {
-          const { matchesService } = await import('./matches.js');
-          const matchResult = await matchesService.markMatchCompleted(
-            responseData.matchId, 
-            currentUser.uid
+      // 處理互填配對（如果有）
+      if (responseData.matchId) {
+        console.log('🔍 開始處理互填配對:', {
+          matchId: responseData.matchId,
+          userId: currentUser.uid,
+          surveyId: surveyId
+        });
+        
+        const { matchesService } = await import('./matches.js');
+        const matchResult = await matchesService.markMatchCompleted(
+          responseData.matchId, 
+          currentUser.uid
+        );
+        
+        mutualBonus = matchResult.mutualBonus;
+        matchCompleted = matchResult.matchCompleted;
+        
+        console.log('✅ 互填配對處理結果:', matchResult);
+        
+        // 如果雙方都完成了，當前用戶獲得互惠加成
+        if (mutualBonus > 0) {
+          await pointsService.addPointsRecord(
+            currentUser.uid,
+            mutualBonus,
+            'mutual_bonus',
+            `互填配對完成加成：${surveyDoc.title}`,
+            responseData.matchId
           );
-          
-          mutualBonus = matchResult.mutualBonus;
-          matchCompleted = matchResult.matchCompleted;
-          
-          // 如果有互惠加成，添加積分記錄
-          if (mutualBonus > 0) {
-            await pointsService.addPointsRecord(
-              currentUser.uid,
-              mutualBonus,
-              'mutual_bonus',
-              `互填配對完成加成：${surveyDoc.title}`,
-              responseData.matchId
-            );
-          }
-          
-          console.log('互填配對處理結果:', matchResult);
+          console.log(`✅ 當前用戶獲得互惠加成 +${mutualBonus} 分`);
+        } else {
+          console.log('ℹ️ 第一個完成，暫無互惠加成（等待對方完成）');
         }
+      } else {
+        console.log('ℹ️ 此回應沒有關聯的配對記錄（非互填）');
+      }
       } catch (error) {
         console.error('處理積分記錄失敗:', error);
       }

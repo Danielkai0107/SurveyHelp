@@ -95,8 +95,12 @@
         <!-- 空狀態 -->
         <div v-else class="empty-records">
           <div class="empty-icon">💰</div>
-          <div class="empty-title">暫無積分記錄</div>
-          <div class="empty-description">完成問卷後積分記錄會顯示在這裡</div>
+          <div class="empty-title">暫無積分記錄明細</div>
+          <div class="empty-description">
+            你的總積分是正確的 ({{ userProfile?.totalPoints || 0 }} 分)<br>
+            如果你剛完成問卷，積分記錄可能需要幾分鐘才能顯示<br>
+            <span style="color: #f59e0b;">（Firestore 索引正在建立中，請稍候）</span>
+          </div>
         </div>
       </div>
     </div>
@@ -179,7 +183,11 @@ const loadPointsRecords = async () => {
     console.error('錯誤代碼:', error.code)
     console.error('錯誤訊息:', error.message)
     
-    if (error.code === 'permission-denied') {
+    if (error.message && error.message.includes('index is currently building')) {
+      console.warn('⏳ Firestore 索引正在建立中，請稍候幾分鐘')
+      console.warn('💡 你的總積分是正確的，只是明細記錄暫時無法顯示')
+      console.warn('🔗 查看索引狀態：https://console.firebase.google.com/project/surveyhelp-891d4/firestore/indexes')
+    } else if (error.code === 'permission-denied') {
       console.error('🚫 Firebase 權限錯誤：請檢查 Firestore 規則')
       console.error('需要添加以下規則到 firestore.rules:')
       console.error(`
