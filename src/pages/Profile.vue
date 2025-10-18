@@ -104,7 +104,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import AuthGuard from '../components/AuthGuard.vue'
 import { useAuth } from '../composables/useAuth.js'
 import { pointsService } from '../services/points.js'
@@ -128,6 +128,13 @@ const loadUserProfile = async () => {
     const profile = await pointsService.getUserProfile(user.value.uid)
     userProfile.value = profile
     console.log('用戶檔案:', profile)
+    
+    // 如果是新用戶（總積分為0且沒有記錄），顯示提示
+    if (profile?.totalPoints === 0) {
+      console.log('新用戶或尚未獲得積分')
+      console.log('💡 提示：完成問卷後積分會自動顯示在這裡')
+      console.log('💡 開發模式：可在 console 執行 addTestPoints() 添加測試積分')
+    }
   } catch (error) {
     console.error('載入用戶檔案失敗:', error)
   } finally {
@@ -141,13 +148,47 @@ const loadPointsRecords = async () => {
   
   try {
     isLoadingRecords.value = true
+    console.log('🔍 開始載入積分記錄，用戶ID:', user.value.uid)
+    
     const records = await pointsService.getUserPointsRecords(user.value.uid)
     pointsRecords.value = records
-    console.log('積分記錄載入完成:', records.length, '筆')
-    console.log('記錄詳情:', records)
+    
+    console.log('✅ 積分記錄載入完成:', records.length, '筆')
+    
+    if (records.length === 0) {
+      console.warn('⚠️ 沒有找到任何積分記錄！')
+      console.log('💡 可能原因：')
+      console.log('   1. 你還沒有完成過任何問卷驗證')
+      console.log('   2. Firebase 規則可能阻止了讀取')
+      console.log('   3. 可以執行 window.addTestPoints() 添加測試數據')
+      console.log('   4. 可以執行 window.checkPointsRecords() 檢查詳細狀態')
+    } else {
+      console.log('📊 積分記錄詳情:', records)
+      
+      // 顯示統計
+      const stats = pointsService.calculatePointsStats(records)
+      console.log('📈 統計結果:', {
+        累計獲得: stats.earned,
+        本月獲得: stats.thisMonth,
+        積分來源: Object.keys(stats.byType).length,
+        按類型: stats.byType
+      })
+    }
   } catch (error) {
-    console.error('載入積分記錄失敗:', error)
-    console.error('錯誤詳情:', error)
+    console.error('❌ 載入積分記錄失敗:', error)
+    console.error('錯誤代碼:', error.code)
+    console.error('錯誤訊息:', error.message)
+    
+    if (error.code === 'permission-denied') {
+      console.error('🚫 Firebase 權限錯誤：請檢查 Firestore 規則')
+      console.error('需要添加以下規則到 firestore.rules:')
+      console.error(`
+        match /pointsRecords/{recordId} {
+          allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+          allow write: if request.auth != null;
+        }
+      `)
+    }
   } finally {
     isLoadingRecords.value = false
   }
@@ -180,12 +221,28 @@ const formatPoints = (points) => {
   return pointsService.formatPoints(points)
 }
 
+// 監聽積分更新事件
+const handlePointsUpdate = async () => {
+  console.log('Profile: 收到積分更新事件，重新載入數據')
+  await Promise.all([
+    loadUserProfile(),
+    loadPointsRecords()
+  ])
+}
+
 // 初始化
 onMounted(async () => {
   await Promise.all([
     loadUserProfile(),
     loadPointsRecords()
   ])
+  
+  // 監聽積分更新事件
+  window.addEventListener('points-updated', handlePointsUpdate)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('points-updated', handlePointsUpdate)
 })
 </script>
 

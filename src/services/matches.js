@@ -98,22 +98,35 @@ export const matchesService = {
       const matchData = docSnap.data();
       const isRequester = completedBy === matchData.requesterUid;
       
-      // 更新完成狀態
-      const updateData = {
-        [isRequester ? 'requesterDone' : 'counterpartDone']: true,
-        [`${isRequester ? 'requester' : 'counterpart'}Points`]: 10 // 基本積分
-      };
-
       // 檢查是否雙方都完成
       const otherDone = isRequester ? matchData.counterpartDone : matchData.requesterDone;
+      
+      // 更新完成狀態
+      const updateData = {
+        [isRequester ? 'requesterDone' : 'counterpartDone']: true
+      };
       
       if (otherDone) {
         // 雙方都完成，給予互惠加成
         updateData.status = 'closed';
-        updateData.requesterPoints = (matchData.requesterPoints || 0) + matchData.mutualBonus;
-        updateData.counterpartPoints = (matchData.counterpartPoints || 0) + matchData.mutualBonus;
         
-        console.log('互填配對完成，雙方獲得互惠加成');
+        // 計算積分：對方已經有基本積分10，現在加上互惠加成
+        // 當前用戶設置為基本積分10 + 互惠加成
+        if (isRequester) {
+          updateData.requesterPoints = 10 + matchData.mutualBonus;
+          updateData.counterpartPoints = (matchData.counterpartPoints || 10) + matchData.mutualBonus;
+        } else {
+          updateData.counterpartPoints = 10 + matchData.mutualBonus;
+          updateData.requesterPoints = (matchData.requesterPoints || 10) + matchData.mutualBonus;
+        }
+        
+        console.log('互填配對完成，雙方獲得互惠加成:', {
+          requesterPoints: updateData.requesterPoints,
+          counterpartPoints: updateData.counterpartPoints
+        });
+      } else {
+        // 第一個完成的人，只給基本積分
+        updateData[`${isRequester ? 'requester' : 'counterpart'}Points`] = 10;
       }
 
       await updateDoc(docRef, updateData);

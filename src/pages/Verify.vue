@@ -2,10 +2,9 @@
   <div class="page-wrapper">
     <div class="verify-container">
     <!-- 未登入提示 -->
-    <div v-if="!isAuthenticated && !loading" class="mb-6">
-      <div style="font-size:48px; margin-bottom:16px">🔐</div>
-      <h2 class="mb-3">請先登入</h2>
-      <p class="text-muted">驗證填答記錄需要登入帳號</p>
+    <div v-if="!isAuthenticated && !loading" class="auth-container">
+      <h2 class="auth-title">請先登入再進行驗證</h2>
+      <p class="auth-message">驗證填答記錄需要登入帳號</p>
       <BaseButton variant="primary" size="default" @click="goToLogin">
         前往登入
       </BaseButton>
@@ -159,6 +158,27 @@ const detailLink = computed(() => `/s/${route.query.surveyId || 'a1'}`)
   align-items: flex-start;
   min-height: 100vh;
   padding: 40px 24px;
+}
+
+.auth-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-title {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 8px 0;
+}
+
+.auth-message {
+  font-size: 14px;
+  color: var(--muted);
+  margin: 0 0 32px 0;
+  line-height: 1.5;
 }
 
 .title{

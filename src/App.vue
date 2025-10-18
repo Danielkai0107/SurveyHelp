@@ -23,7 +23,10 @@
         <div v-else-if="user" class="user-menu">
           <router-link to="/me/profile" class="user-info" @click="handleNavClick">
             <img v-if="user.photoURL" :src="user.photoURL" :alt="user.displayName" class="user-avatar">
-            <span class="user-name">{{ user.displayName || user.email }}</span>
+            <div class="user-info-text">
+              <span class="user-name">{{ user.displayName || user.email }}</span>
+              <span class="user-points">{{ userPoints }} 積分</span>
+            </div>
           </router-link>
           <button @click="handleLogout" class="logout-btn">登出</button>
         </div>
@@ -97,8 +100,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useAuth } from './composables/useAuth.js'
+import { pointsService } from './services/points.js'
+import { expireCheckService } from './services/expireCheck.js'
 
 const sidebarOpen = ref(false)
 const sidebarCollapsed = ref(false)
@@ -106,6 +111,44 @@ const windowWidth = ref(window.innerWidth)
 
 // 認證狀態
 const { user, isLoading, logout, initAuth } = useAuth()
+
+// 用戶積分
+const userPoints = ref(0)
+
+// 載入用戶積分
+const loadUserPoints = async () => {
+  if (!user.value) {
+    userPoints.value = 0
+    return
+  }
+  
+  try {
+    const points = await pointsService.getUserTotalPoints(user.value.uid)
+    userPoints.value = points || 0
+  } catch (error) {
+    console.error('載入積分失敗:', error)
+    userPoints.value = 0
+  }
+}
+
+// 監聽用戶變化，自動載入積分
+watch(user, (newUser) => {
+  if (newUser) {
+    loadUserPoints()
+    // 啟動過期檢查服務
+    expireCheckService.startAutoCheck()
+  } else {
+    userPoints.value = 0
+    // 停止過期檢查服務
+    expireCheckService.stopAutoCheck()
+  }
+}, { immediate: true })
+
+// 監聽積分更新事件
+const handlePointsUpdate = () => {
+  console.log('收到積分更新事件，重新載入積分')
+  loadUserPoints()
+}
 
 // 處理登出
 const handleLogout = async () => {
@@ -156,11 +199,15 @@ const handleNavClick = () => {
 
 onMounted(() => {
   window.addEventListener('resize', handleResize)
+  window.addEventListener('points-updated', handlePointsUpdate)
   initAuth() // 初始化認證狀態
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
+  window.removeEventListener('points-updated', handlePointsUpdate)
+  // 清理過期檢查服務
+  expireCheckService.stopAutoCheck()
 })
 </script>
 
@@ -296,6 +343,14 @@ onUnmounted(() => {
   height: 32px;
   border-radius: 50%;
   border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.user-info-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
 }
 
 .user-name {
@@ -306,6 +361,14 @@ onUnmounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1;
+}
+
+.user-points {
+  font-size: 11px;
+  font-weight: 600;
+  color: #22c55e;
+  line-height: 1;
 }
 
 .logout-btn {

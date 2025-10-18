@@ -131,9 +131,15 @@
             </BaseButton>
             
             <!-- 已登入用戶 -->
-            <BaseButton v-else variant="primary" size="default" @click="startSurvey">
-              {{ userAnswerStatus === 'done' ? '已完成' : userAnswerStatus === 'doing' ? '繼續填答' : '開始作答' }}
-            </BaseButton>
+            <div v-else class="start-button-wrapper">
+              <BaseButton variant="primary" size="default" @click="startSurvey">
+                {{ startButtonText }}
+              </BaseButton>
+              <!-- 互助回填提示 -->
+              <div v-if="isCounterpartMatch && userAnswerStatus === 'pending'" class="mutual-help-hint">
+                對方已開始填寫你的問卷，請盡快回填！
+              </div>
+            </div>
           </div>
         </div>
 
@@ -198,6 +204,19 @@
       @close="handleModalClose"
       @confirm="handleStartConfirm"
     />
+
+    <!-- 刪除確認彈窗 -->
+    <ConfirmModal
+      :visible="showDeleteConfirm"
+      title="刪除問卷"
+      :message="`確定要刪除問卷「${survey?.title || ''}」嗎？\n\n此操作無法復原。`"
+      confirm-text="刪除"
+      cancel-text="取消"
+      processing-text="刪除中..."
+      type="danger"
+      @confirm="confirmDelete"
+      @close="showDeleteConfirm = false"
+    />
   </div>
 </template>
 <script setup>
@@ -205,6 +224,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import BaseButton from '../components/BaseButton.vue'
 import StartAnswerModal from '../components/StartAnswerModal.vue'
+import ConfirmModal from '../components/ConfirmModal.vue'
 import { surveyService } from '../services/firebase.js'
 import { responsesService } from '../services/responses.js'
 import { matchesService } from '../services/matches.js'
@@ -224,6 +244,7 @@ const { user } = useAuth()
 
 // 彈窗狀態
 const showStartModal = ref(false)
+const showDeleteConfirm = ref(false)
 
 // 狀態控制
 const isUpdatingStatus = ref(false)
@@ -268,6 +289,19 @@ const userAnswerStatus = computed(() => {
   if (isDone) return 'done'
   if (hasStarted) return 'doing'
   return 'pending'
+})
+
+// 檢查是否為互助回填（對方選給我填的問卷）
+const isCounterpartMatch = computed(() => {
+  return userMatch.value && userMatch.value.role === 'counterpart'
+})
+
+// 按鈕文案
+const startButtonText = computed(() => {
+  if (userAnswerStatus.value === 'done') return '已完成'
+  if (userAnswerStatus.value === 'doing') return '繼續填答'
+  if (isCounterpartMatch.value) return '互助回填'
+  return '開始作答'
 })
 
 // 返回功能
@@ -331,7 +365,7 @@ const reportSurvey = () => {
 }
 
 // 開始作答功能
-const startSurvey = () => {
+const startSurvey = async () => {
   if (!survey.value) {
     alert('問卷資料不存在')
     return
@@ -355,9 +389,47 @@ const startSurvey = () => {
       }
       return
     }
+    
+    // 如果是 counterpart 角色且狀態是 pending（互助回填）
+    if (isCounterpartMatch.value && status === 'pending') {
+      try {
+        console.log('互助回填：直接開始作答，不需選擇問卷')
+        
+        // 創建待驗證回應記錄
+        const response = await responsesService.createPendingResponse(
+          survey.value.id, 
+          userMatch.value.id
+        )
+        
+        // 更新配對的 response ID（counterpart 角色）
+        await matchesService.updateMatchResponseId(
+          userMatch.value.id, 
+          response.responseId, 
+          false // counterpart
+        )
+        
+        console.log('互助回填創建完成:', { response })
+        
+        // 更新本地狀態
+        await checkUserMatch()
+        
+        // 開啟外部問卷
+        if (survey.value.link) {
+          window.open(survey.value.link, '_blank', 'noopener,noreferrer')
+        } else {
+          alert('問卷連結不存在')
+        }
+        
+        return
+      } catch (error) {
+        console.error('互助回填失敗:', error)
+        alert('開始作答失敗，請稍後再試')
+        return
+      }
+    }
   }
   
-  // 沒有配對記錄或狀態是 pending，顯示選擇彈窗
+  // 沒有配對記錄或狀態是 pending（且不是 counterpart），顯示選擇彈窗
   showStartModal.value = true
 }
 
@@ -437,17 +509,24 @@ const editSurvey = () => {
 }
 
 // 刪除問卷
-const deleteSurvey = async () => {
+const deleteSurvey = () => {
   if (!survey.value) return
-  
-  const confirmed = confirm(`確定要刪除問卷「${survey.value.title}」嗎？此操作無法復原。`)
-  
-  if (!confirmed) return
+  showDeleteConfirm.value = true
+}
+
+// 確認刪除
+const confirmDelete = async () => {
+  if (!survey.value) return
   
   try {
     await surveyService.deleteSurvey(survey.value.id)
     
     console.log('問卷已刪除:', survey.value.id)
+    
+    // 關閉彈窗
+    showDeleteConfirm.value = false
+    
+    // 顯示成功訊息
     alert('問卷已成功刪除')
     
     // 跳轉到我的問卷頁面
@@ -455,6 +534,7 @@ const deleteSurvey = async () => {
     
   } catch (error) {
     console.error('刪除問卷失敗:', error)
+    showDeleteConfirm.value = false
     alert('刪除失敗，請稍後再試')
   }
 }
@@ -716,6 +796,19 @@ const s = computed(() => survey.value || {})
   display: flex;
   gap: 12px;
   align-items: center;
+}
+
+.start-button-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.mutual-help-hint {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.3;
 }
 
 .status-info {

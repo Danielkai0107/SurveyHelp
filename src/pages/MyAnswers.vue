@@ -48,7 +48,7 @@
   </AuthGuard>
 </template>
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import MatchItem from '../components/MatchItem.vue'
 import AuthGuard from '../components/AuthGuard.vue'
 import { matchesService } from '../services/matches.js'
@@ -76,42 +76,37 @@ const loadMatches = async () => {
     // 為每個配對載入詳細資訊
     const enrichedMatches = await Promise.all(
       matches.map(async (match) => {
-        try {
-          // 載入目標問卷資訊
-          const targetSurvey = await surveyService.getSurveyWithLabels(
-            match.role === 'requester' ? match.ownerSurveyId : match.selectedMySurveyId
-          )
-          
-          // 如果問卷不存在（已被刪除），返回 null
-          if (!targetSurvey) {
-            return null
-          }
-          
-          // 載入我的問卷資訊（如果有選擇）
-          let mySurvey = null
-          if (match.selectedMySurveyId && match.role === 'requester') {
-            mySurvey = await surveyService.getSurveyWithLabels(match.selectedMySurveyId)
-          } else if (match.ownerSurveyId && match.role === 'counterpart') {
-            mySurvey = await surveyService.getSurveyWithLabels(match.ownerSurveyId)
-          }
-          
-          // 計算狀態
-          const status = getMatchStatus(match)
-          const timeRemaining = matchesService.calculateTimeRemaining(match.expireAt)
-          
-          return {
-            ...match,
-            targetSurvey,
-            mySurvey,
-            status: status.status,
-            statusText: status.text,
-            timeRemaining,
-            points: calculatePoints(match)
-          }
-        } catch (error) {
-          console.error('載入配對詳情失敗:', error)
-          // 如果是問卷不存在的錯誤，返回 null（過濾掉）
+        // 載入目標問卷資訊（對方要我填的問卷）
+        const targetSurveyId = match.role === 'requester' ? match.ownerSurveyId : match.selectedMySurveyId
+        const targetSurvey = await surveyService.getSurveyWithLabels(targetSurveyId, { returnNullOnError: true })
+        
+        // 如果問卷不存在（已被刪除），返回 null
+        if (!targetSurvey) {
+          console.log(`配對 ${match.id} 的目標問卷已被刪除，跳過此配對`)
           return null
+        }
+        
+        // 載入我的問卷資訊（對方要填的我的問卷，如果有選擇）
+        let mySurvey = null
+        if (match.selectedMySurveyId && match.role === 'requester') {
+          mySurvey = await surveyService.getSurveyWithLabels(match.selectedMySurveyId, { returnNullOnError: true })
+        } else if (match.ownerSurveyId && match.role === 'counterpart') {
+          mySurvey = await surveyService.getSurveyWithLabels(match.ownerSurveyId, { returnNullOnError: true })
+        }
+        // 注意：即使 mySurvey 是 null（我的問卷被刪除），配對仍然有效，因為重要的是 targetSurvey
+        
+        // 計算狀態
+        const status = getMatchStatus(match)
+        const timeRemaining = matchesService.calculateTimeRemaining(match.expireAt)
+        
+        return {
+          ...match,
+          targetSurvey,
+          mySurvey,
+          status: status.status,
+          statusText: status.text,
+          timeRemaining,
+          points: calculatePoints(match)
         }
       })
     )
@@ -209,9 +204,21 @@ const reopenSurvey = (match) => {
   }
 }
 
+// 監聽積分更新事件（驗證完成後觸發）
+const handlePointsUpdate = async () => {
+  console.log('MyAnswers: 收到積分更新事件，重新載入配對數據')
+  await loadMatches()
+}
+
 // 初始化
 onMounted(() => {
   loadMatches()
+  // 監聽積分更新事件
+  window.addEventListener('points-updated', handlePointsUpdate)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('points-updated', handlePointsUpdate)
 })
 </script>
 

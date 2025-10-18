@@ -127,7 +127,7 @@ export const surveyService = {
   },
 
   // 獲取問卷並轉換標籤顯示
-  async getSurveyWithLabels(surveyId) {
+  async getSurveyWithLabels(surveyId, options = {}) {
     try {
       const survey = await this.getSurvey(surveyId);
       const allOptions = await optionsService.getAllOptions();
@@ -144,6 +144,11 @@ export const surveyService = {
         tagsLabels: optionsService.convertIdsToLabels(allOptions.topics, survey.tags || [])
       };
     } catch (error) {
+      // 如果設置了 returnNullOnError，則返回 null 而不是拋出錯誤
+      if (options.returnNullOnError) {
+        console.log(`問卷 ${surveyId} 不存在或已被刪除`);
+        return null;
+      }
       throw error;
     }
   },

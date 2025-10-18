@@ -192,6 +192,12 @@ export const responsesService = {
         console.error('處理積分記錄失敗:', error);
       }
 
+      // 觸發積分更新事件
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('points-updated'))
+        console.log('✅ 已觸發積分更新事件')
+      }
+
       return {
         success: true,
         message: '驗證完成！感謝您的參與',

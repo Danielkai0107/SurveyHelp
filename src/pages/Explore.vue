@@ -104,6 +104,7 @@ import BaseSelect from '../components/BaseSelect.vue'
 import { useOptions } from '../composables/useOptions.js'
 import { useAuth } from '../composables/useAuth.js'
 import { surveyService } from '../services/firebase.js'
+import { responsesService } from '../services/responses.js'
 
 // 主要標籤
 const mainTabs = ref([
@@ -135,6 +136,8 @@ const loadMoreIncrement = 5 // 每次加載5個
 
 // 問卷資料（從 Firestore 載入）
 const allContent = ref([])
+// 用戶已完成的問卷ID列表
+const completedSurveyIds = ref(new Set())
 
 // 篩選後的內容
 const filteredContent = computed(() => {
@@ -143,6 +146,11 @@ const filteredContent = computed(() => {
   // 過濾掉用戶自己發布的問卷
   if (user.value) {
     content = content.filter(item => item.createdBy !== user.value.uid)
+  }
+
+  // 過濾掉用戶已完成的問卷
+  if (user.value && completedSurveyIds.value.size > 0) {
+    content = content.filter(item => !completedSurveyIds.value.has(item.id))
   }
 
   // 主要標籤篩選
@@ -204,6 +212,27 @@ const loadMore = () => {
 // 載入問卷資料
 const isLoading = ref(false)
 
+// 載入用戶已完成的問卷
+const loadCompletedSurveys = async () => {
+  if (!user.value) {
+    completedSurveyIds.value = new Set()
+    return
+  }
+  
+  try {
+    const responses = await responsesService.getUserResponses(user.value.uid)
+    // 只統計已完成狀態的回應
+    const completedIds = responses
+      .filter(r => r.status === 'completed')
+      .map(r => r.surveyId)
+    completedSurveyIds.value = new Set(completedIds)
+    console.log('用戶已完成的問卷數量:', completedSurveyIds.value.size)
+  } catch (error) {
+    console.error('載入已完成問卷失敗:', error)
+    completedSurveyIds.value = new Set()
+  }
+}
+
 const loadSurveys = async () => {
   isLoading.value = true
   try {
@@ -229,6 +258,7 @@ const loadSurveys = async () => {
 onMounted(async () => {
   try {
     await initOptions()
+    await loadCompletedSurveys() // 先載入已完成的問卷列表
     await loadSurveys()
   } catch (error) {
     console.error('初始化失敗:', error)

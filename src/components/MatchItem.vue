@@ -1,5 +1,9 @@
 <template>
-  <div class="match-item" @click="handleClick">
+  <div 
+    class="match-item" 
+    :class="{ 'disabled': isDisabled }"
+    @click="handleClick"
+  >
     <!-- 左側內容 -->
     <div class="match-content">
       <div class="match-header">
@@ -57,7 +61,7 @@
           size="small"
           @click="$emit('start', match)"
         >
-          開始作答
+          {{ match.role === 'counterpart' ? '互助回填' : '開始作答' }}
         </BaseButton>
         
         <!-- 進行中狀態 -->
@@ -98,8 +102,15 @@ const props = defineProps({
 
 const emit = defineEmits(['click', 'start', 'continue'])
 
+// 已完成或已過期的配對不可點擊
+const isDisabled = computed(() => {
+  return props.match.status === 'done' || props.match.status === 'expired'
+})
+
 const handleClick = () => {
-  emit('click', props.match)
+  if (!isDisabled.value) {
+    emit('click', props.match)
+  }
 }
 
 const statusClass = computed(() => {
@@ -127,6 +138,16 @@ const statusClass = computed(() => {
 
 .match-item:hover .match-title {
   transform: scale(1.1);
+}
+
+/* 禁用狀態 */
+.match-item.disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.match-item.disabled:hover .match-title {
+  transform: none;
 }
 
 .match-item:last-child {

@@ -13,6 +13,9 @@ import { initFirestoreOptions } from './utils/initFirestore.js'
 // 開發模式下導入測試資料腳本
 if (import.meta.env.DEV) {
   import('./utils/addTestData.js')
+  import('./utils/addTestPoints.js')
+  import('./utils/checkPointsRecords.js')
+  import('./utils/fixPointsData.js')
 }
 
 // Element UI 主題色配置

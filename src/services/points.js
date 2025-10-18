@@ -5,6 +5,7 @@ import {
   getDoc,
   getDocs, 
   updateDoc,
+  setDoc,
   query, 
   where, 
   orderBy,
@@ -49,8 +50,10 @@ export const pointsService = {
           updatedAt: serverTimestamp()
         };
         
-        await updateDoc(docRef, newProfile);
-        return newProfile;
+        // 使用 setDoc 而不是 updateDoc
+        await setDoc(docRef, newProfile);
+        console.log('已創建新的用戶檔案:', currentUser);
+        return { id: currentUser, ...newProfile };
       }
     } catch (error) {
       console.error('獲取用戶檔案失敗:', error);
@@ -61,6 +64,9 @@ export const pointsService = {
   // 添加積分記錄
   async addPointsRecord(userId, points, type, description, relatedId = null) {
     try {
+      // 0. 確保用戶檔案存在
+      await this.getUserProfile(userId);
+
       // 1. 創建積分記錄
       const recordData = {
         userId,
